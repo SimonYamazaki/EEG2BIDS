@@ -6,23 +6,53 @@ addpath('/mrhome/simonyj/biosig-code/biosig4matlab/t200_FileAccess/')
 
 %% Setup  
 
-data_dir = '/home/simonyj/EEG_flanker';
-bids_dir = '/home/simonyj/EEG_BIDS_flanker';
+data_dir = '/home/simonyj/EEG_MMM';
+%data_dir.via15 = '/home/simonyj/EEG_MMM';
 EEG2BIDS_tool_dir = '/home/simonyj/EEG2BIDS';
+bids_dir = '/home/simonyj/EEG_BIDS_MMM';
 
 if not(isfolder(bids_dir))
     mkdir(bids_dir)
 end
 
-task = 'Flanker';
+task = 'MMM';
 
 %sesssions 
 ses = {'via11','via15'};
 
+
 % extract file names and subject ids 
 file_struct = dir(sprintf('%s/*.bdf',data_dir));
 bdf_file_names = cellstr({file_struct.name});
-sub = cellfun(@(x) x(1:3),bdf_file_names,'un',0);
+sub = cell(1,length(bdf_file_names));
+sub_split = cellfun(@(x) split(x,{'sub','_','-'}),bdf_file_names,'UniformOutput',0);
+for ii = 1:length(bdf_file_names)
+    numeric_idx = cell2mat(cellfun(@(x) ~isnan(str2double(x)),sub_split{ii},'UniformOutput',0));
+    len3_idx = cellfun(@(x) length(x)==3,sub_split{ii});
+    sub{ii} = sub_split{ii}{and(numeric_idx,len3_idx)};
+end
+
+%check if subject has accompanying files
+xfile_struct = dir(sprintf('%s/*_triggers.mat',data_dir));
+xfile_names = cellstr({xfile_struct.name});
+sub_triggers = cell(1,length(xfile_names));
+sub_triggers_split = cellfun(@(x) split(x,{'sub','_','-'}),xfile_names,'UniformOutput',0);
+for ii = 1:length(xfile_names)
+    numeric_idx = cell2mat(cellfun(@(x) ~isnan(str2double(x)),sub_triggers_split{ii},'UniformOutput',0));
+    len3_idx = cellfun(@(x) length(x)==3,sub_triggers_split{ii});
+    sub_triggers{ii} = sub_triggers_split{ii}{and(numeric_idx,len3_idx)};
+end
+
+if isequal(sub,sub_triggers)
+    fprintf('\nAll subjects with .bdf files also have trigger files \n')
+elseif length(sub)==length(sub_triggers) && ~isequal(sub,sub_triggers)
+    fprintf('Did not find match between subjects with .bdf files and subjects with trigger .mat files. Check if subject ID search pattern is correct \n')
+elseif length(sub)>length(sub_triggers)
+    fprintf('Subject %s has .bdf file but are missing a trigger file \n',sub{~ismember(sub,sub_triggers)} )
+elseif length(sub)<length(sub_triggers)
+    fprintf('Subject %s has trigger file but are missing .bdf file \n',sub_triggers{~ismember(sub_triggers,sub)} )
+end
+
 
 %find already existing subs by subject folders
 sub_dirs = dir(sprintf('%s/sub-*',bids_dir));
@@ -43,7 +73,6 @@ for f = 1:length(files_checked)
 end
 sub = sub(~ismember(sub,existing_sub));
 
-%sub = {sub{1:2}};
 
 if isempty(sub) && ~isempty(existing_sub)
     assert(~isempty(sub),'All relevant subject files are moved to BIDS data structure. Add more subject files to the data_dir.')
@@ -67,16 +96,8 @@ sub_info_table = table2cell(sub_info_table);
 %only include these participant info variables
 participant_info_include = {'MRI_age_v11', 'Sex_child_v11','HighRiskStatus_v11'};
 
-%behav data xlsx file
-behav_path = '/mnt/projects/VIA11/EEG/Anna/Flanker/Input_behavdata_Excel/Flankerbehav090119.xls';
-behav_table = readtable(behav_path);
-
-%get coloumn names from elsewhere 
-behav_col_names_path = '/mnt/projects/VIA11/EEG/Data/Flanker_47condition/EEG_Flanker.txt';
-behav_col_names = readtable(behav_col_names_path).Properties.VariableNames;
-
 %read instructions 
-fid = fopen(fullfile(data_dir,'Flanker_instructions.txt'), 'r');
+fid = fopen(fullfile(data_dir,'MMM_instructions.txt'), 'r');
 if fid == -1
   error('Cannot open file fpr reading: %s', FileName);
 end
@@ -84,15 +105,15 @@ txtC = textscan(fid, '%s', 'delimiter', '\n', 'whitespace', '');
 InstructionsC  = txtC{1};
 fclose(fid);
 
-    
+
 %% Generate BIDS structure and files
 
 %%%%%% Use data2bids function on each subject %%%%%%%%
 
 % for more information on data2bids function see: 
 % https://github.com/fieldtrip/fieldtrip/blob/master/data2bids.m
-%sub = existing_sub;
 
+%sub = existing_sub;
 
 for subindx=1:numel(sub)
     for sesindx=1:numel(ses)
@@ -125,12 +146,6 @@ for subindx=1:numel(sub)
             cfg.participants.(col_names{col}) = strrep(char(sub_info_table{via_id==sub_int,col}),'/','-');
         elseif contains(col_names{col},participant_info_include) && isnumeric(sub_info_table{via_id==sub_int,col}) && isnan(sub_info_table{via_id==sub_int,col})
             cfg.participants.(col_names{col}) = 'n/a';
-            
-%         elseif strcmp(col_names{col},'Sex_child_v11')
-%             cfg.participants.(col_names{col}) = sex_codes{sub_info_table{via_id==sub_int,col}+1};
-%             participant_info_include(strcmp(participant_info_include,'Sex_child_v11'))=[];
-%         else
-%             cfg.participants.(col_names{col}) = sub_info_table{via_id==sub_int,col};
         end
     end
     
@@ -147,16 +162,16 @@ for subindx=1:numel(sub)
 
     % provide the mnemonic and long description of the task
     cfg.TaskName        = task;
-    cfg.TaskDescription = 'Subjects were repsonding to a central target arrow pointing either to the left or right flanked by non-target arrows pointing in the same direction as the target arrow (congruent) or in the opposite direction (incongruent).';
+    cfg.TaskDescription = '????';
     cfg.DatasetType = 'raw';
 
     % EEG specific configs saved in *_eeg.json file 
     cfg.eeg.PowerLineFrequency    = 50;
     cfg.eeg.Manufacturer          = 'Biosemi';
     cfg.eeg.ManufacturersModelName = '????';
-    cfg.eeg.SoftwareVersions      = 'Version ????';
+    cfg.eeg.SoftwareVersions      = '????';
     cfg.eeg.Instructions          = InstructionsC{1};
-    cfg.eeg.CogPOID               = 'http://wiki.cogpo.org/index.php?title=Flanker_Task_Paradigm';
+    cfg.eeg.CogPOID               = '????';
     cfg.eeg.DeviceSerialNumber    = '????';
     cfg.eeg.EEGReference          = 'Common Mode Sense (CMS) and Driven Right Leg (DRL)'; 
 
@@ -172,44 +187,81 @@ for subindx=1:numel(sub)
     cfg.eeg.CapManufacturersModelName = '????';
     cfg.eeg.EEGPlacementScheme = 'radial';
 
-    cfg.events = ft_read_event(fullfile(data_dir,bdf_file_names{subindx}));
+    %%%%%%%%
+    event_struct = ft_read_event(fullfile(data_dir,bdf_file_names{subindx}));
+    fs = ft_read_header(fullfile(data_dir,bdf_file_names{subindx})).Fs; %4096
+    delay = 37;
     
-    for col_idx = 1:length(behav_col_names)
-        col_name = behav_col_names{col_idx};
-        col_values = table2cell(behav_table(behav_table.Var2==sub_int,col_idx));
-        
-        if all(cellfun(@isdatetime, col_values))
-            col_values = convertStringsToChars(string(col_values));
-        end
-        
-        con_incon_idx = [cfg.events.value]==65291 | [cfg.events.value]==65311 | [cfg.events.value]==65301 | [cfg.events.value]==65321;
-        empty_idx = cellfun(@isempty,{cfg.events.value},'UniformOutput',1);
-        condition_idx = false(1,length(empty_idx));
-        condition_idx(not(empty_idx))=con_incon_idx;
-        
-        event_values = cell(1,length(cfg.events));
-        event_values([condition_idx]) = col_values;
-        event_values([not(condition_idx)]) = {'n/a'};
-        [cfg.events.(col_name)] = event_values{:};
-    end
+    load(sprintf('%s/subject_%s_MMN_triggers.mat',data_dir,cfg.sub));
 
+    %Epoching
+    % estimate the start of the first sound
+    bdf_event_samples = [event_struct.sample];    
+    start_idx = [event_struct.value]==65281;
+    empty_idx = cellfun(@isempty,{event_struct.value},'UniformOutput',1);
+    timestart_idx = false(1,length(empty_idx));
+    timestart_idx(not(empty_idx))=start_idx;
+    
+    timestart = bdf_event_samples(timestart_idx)/fs;
+
+    %create the rest of the 1800 trials and correct for the latency between the
+    %trigger and the sound
+    S.trl(1,1)=timestart*fs+round((delay/1000)*fs); %-0.1*fs; %(the -0.1*fs shifts the start of the epoch to be 100ms before the sound which SPM wants)
+    S.conditionlabels{1,:} = 'std';
+    
+    trig=round(start_samples/(44100/4096));
+
+    for i = 2:length(trig)
+        S.trl(i,1)=S.trl(1,1)+trig(i);
+
+        if mmn_codes(i)==1
+            S.conditionlabels{i,:}= 'std';
+        elseif mmn_codes(i) ==2
+            S.conditionlabels{i,:}= 'dev1';
+        elseif mmn_codes(i) ==3
+            S.conditionlabels{i,:}='dev2';
+        elseif mmn_codes(i) ==4
+            S.conditionlabels{i,:}='dev3';
+        end
+    end
+    
+    bdf_event_table = struct2table(event_struct); 
+    type = repmat({'STATUS'},length(S.conditionlabels),1) ;
+    value = cell(length(S.conditionlabels),1);
+    offset = cell(length(S.conditionlabels),1);
+    duration = num2cell(ones(length(S.conditionlabels),1)*0.5*fs);
+    sample = S.trl(:,1);
+    
+    generated_event_table = table(type,sample,value,offset,duration);
+    event_table = [bdf_event_table;generated_event_table];
+    
+    event_table.delay = ones(length(event_struct)+length(S.conditionlabels),1)*delay/1000;
+    event_table.conditionlabel = [cell(length(event_struct),1); S.conditionlabels(:)];
+    event_table.rand_ISI = [cell(length(event_struct),1); rand_ISI'];
+    event_table.start_samples = [cell(length(event_struct),1); start_samples'];
+
+    cfg.events = table2struct(event_table);
+
+    
+    
     data2bids(cfg);
     
     end
 end
 
+
 %% Write events.json 
 
 %read from txt 
-fid = fopen(fullfile(data_dir,'Flanker_events.txt'), 'r');
-if fid == -1
-  error('Cannot open file fpr reading: %s', FileName);
-end
+event_txt_file = 'MMN_events.txt';
+fid = fopen(fullfile(data_dir,event_txt_file), 'r');
+assert(fid~=-1,sprintf('Could not open %s',event_txt_file))
+
 txtC = textscan(fid, '%s', 'delimiter', '\n', 'whitespace', '');
-flanker_events  = txtC{1};
+MMM_events  = txtC{1};
 fclose(fid);
 
-flanker_split = cellfun(@(x) split(x,char(9)),flanker_events,'UniformOutput',0);
+MMM_split = cellfun(@(x) split(x,char(9)),MMM_events,'UniformOutput',0);
 
 if strcmp(run_mode,'new_BIDS')
     filename = fullfile(bids_dir, sprintf('task-%s_events.json',task));
@@ -219,34 +271,66 @@ if strcmp(run_mode,'new_BIDS')
     cfg.TaskEventsDescription.duration.Description = 'Duration of stimuli';
     cfg.TaskEventsDescription.duration.Units = 's';
 
-    cfg.TaskEventsDescription.sample.Description = 'EEG Sample';
+    cfg.TaskEventsDescription.sample.Description = '????';
     cfg.TaskEventsDescription.sample.Units = 's';
 
-    cfg.TaskEventsDescription.type.Description = 'Type of stimuli';
+    cfg.TaskEventsDescription.type.Description = '????';
     cfg.TaskEventsDescription.type.Levels.STATUS = 'STATUS type';
     cfg.TaskEventsDescription.type.Levels.Epoch = 'Epoch type';
     cfg.TaskEventsDescription.type.Levels.CM_in_range = 'CM_in_range type';
     
+    cfg.TaskEventsDescription.delay.Description = 'Delay between the trigger and when the sound is actually played in the headphones of 37 ms, see also the file trigger_delay';
+    cfg.TaskEventsDescription.delay.Units = 's';
+    
+    cfg.TaskEventsDescription.conditionlabel.Description = '????';
+    cfg.TaskEventsDescription.conditionlabel.Levels = '????';
+    
+    cfg.TaskEventsDescription.rand_ISI.Description = '????';
+    cfg.TaskEventsDescription.rand_ISI.Units = '????';
+    
+    cfg.TaskEventsDescription.start_samples.Description = '????';
+    cfg.TaskEventsDescription.start_samples.Units = '????';
+    
+    desc = sprintf('The value characterizing the event. These are the values to %s, and the description of these values includes information about %s',MMM_split{1}{end},MMM_split{1}{1});
+    cfg.TaskEventsDescription.value.Description = desc;
+    
     notes ='';
-    for s = 2:length(flanker_split)
-        level_key = flanker_split{s}{end};
+    for s = 2:length(MMM_split)
+        level_key = MMM_split{s}{end};
         if ~isnan(str2double(level_key))
-            cfg.FlankerEventsDescription.value.Levels.(strcat('Int_',level_key)) = flanker_split{s}{1};
+            cfg.TaskEventsDescription.value.Levels.(strcat('Int_',level_key)) = MMM_split{s}{1};
         else
-            notes = strcat(notes,level_key);
+            notes = strcat(notes,' ',level_key);
         end
     end
     
-    desc = sprintf('The value characterizing the event. These are the values to %s, and the description of these values includes information about %s',flanker_split{1}{end},flanker_split{1}{1});
-    cfg.TaskEventsDescription.value.Description = desc;
-    
-    cfg.TaskEventsDescription.Notes = notes;
+    cfg.TaskEventsDescription.Notes = strcat(notes,' The variables from subject_*SUB_ID*_MMN_triggers.mat files are added to the events.tsv files as start_sample -> start_sample, rand_ISI -> rand_ISI, mmm-codes -> conditionlabels.');
     
     cfg.TaskEventsDescription.StimulusPresentation = '????';
-
+    
     fn = fieldnames(cfg.TaskEventsDescription);
-    TaskEventsDescription_settings = keepfields(cfg.FlankerEventsDescription, fn);
+    TaskEventsDescription_settings = keepfields(cfg.TaskEventsDescription, fn);
     ft_write_json(filename, TaskEventsDescription_settings);
+end
+
+
+subs = [sub,existing_sub];
+
+for ii = 1:length(subs)
+    for jj = 1:length(ses)
+        
+        described_vars=fieldnames(cfg.TaskEventsDescription);
+        var_names = readtable(fullfile(bids_dir,sprintf('sub-%s/ses-%s/eeg/sub-%s_ses-%s_task-%s_events.tsv',subs{ii},ses{jj},subs{ii},ses{jj},task)),'FileType','text').Properties.VariableNames;
+
+        non_described_var_idx = ~ismember(var_names,described_vars);
+        
+        if any(non_described_var_idx)
+            non_described_vars = var_names(non_described_var_idx);
+            fprintf('The file %s is missing a description for the ',filename)
+            fprintf('%s variable, ',non_described_vars{:})
+            fprintf('for subject %s in session %s\n',subs{ii},ses{jj})
+        end
+    end
 end
 
 
@@ -470,246 +554,23 @@ file_path = mfilename('fullpath');
 [ff,name,ext] = fileparts(file_path);
 copyfile(strcat(file_path,'.m'), fullfile(code_dir,strcat(name,'.m')), 'f')
 
-
-%also copy BIDS validator, json fix scripts and job bash script 
+%also copy BIDS validator, json fix scripts and job script 
 if strcmp(run_mode,'new_BIDS')
     copyfile(fullfile(EEG2BIDS_tool_dir,'/BIDS_validator_EEG.py'), fullfile(code_dir,'/BIDS_validator_EEG.py'), 'f')
     copyfile(fullfile(EEG2BIDS_tool_dir,'/change_json_int_keys.py'), fullfile(code_dir,'/change_json_int_keys.py'), 'f')
-    copyfile(fullfile(EEG2BIDS_tool_dir,'/EEG_Flanker_job.sh'), fullfile(code_dir,'/EEG_Flanker_job.sh'), 'f')
+    %copyfile(fullfile(EEG2BIDS_tool_dir,'/EEG_Flanker_job.sh'), fullfile(code_dir,'/EEG_Flanker_job.sh'), 'f')
 end
 
 
-%% NOTES
+%% Copy the stimulation files to /stim direcotry
 
-% DO NOW 
-% start nyt dataset - tag højde for uregelmæssigheder i filnavne
-% prøv evt. andre BIDS validators for at se om de kigger i json filer efter fejl/mangler
-% opdater job scriptet 
-% tage højde for session med nyt data_dir
-% lav funktioner som kan genbruges 
+stim_dir = fullfile(bids_dir,'/stim');
 
+if not(isfolder(stim_dir))
+    mkdir(stim_dir)
+end
 
-% TIL SIDST
-% lav liste med ting der skal udfyldes i json filerne  
-%    - events.json 
-%    - participants.json filerne skal udfyldes med en .txt fil - husk stimuli
-%    - software, matlab scripts?
-%    - opgiv gentofte hospital som kontakt for mere info i forhold til participants.tsv
+if strcmp(run_mode,'new_BIDS')
+    copyfile(fullfile(EEG2BIDS_tool_dir,'/BIDS_validator_EEG.py'), fullfile(stim_dir,'/BIDS_validator_EEG.py'), 'f')
+end
 
-
-%SPG
-%placering af CSM og DRL
-%electrodes, hvordan skal det struktureres? 
-%rækkefølge af allerede eksisterende events fra bdf, + hvilke kolonner skal udfyldes
-%     -skal de originale kolonner også med?
-% conditionlabels som text eller som tal i events.tsv filen
-% trigger_delay file fra MMM_events.txt, hvad er det? 
-% hvor ligger selve stim lydene? -skal puttes i stim directory
-
-
-%DCM 
-%læs manual 
-%læs tutorial 
-%spm mailing archive, peter zeidman
-%parametric emperical bayes 
-%spm example scripts 
-%se videoer 
-
-
-
-%%% noter
-%originale eprime filer skal ligge i sourcedata, men hvad med eprime-merge?
-%Derivatives - hvad med alle de andre .mat filer? især 47conditions.mat filer
-%make electrodes.tsv file based on coordinates from https://www.biosemi.com/headcap.htm
-%make a coordinate system file for the electrodes 
-%CHANGES file, se https://github.com/bids-standard/bids-examples/blob/master/eeg_matchingpennies/code/format_v016_to_v020.py
-%ft_read_sens til electroder? 
-% det vides ikke hvordan Beh4EEG.mat er lavet, men datanalysen begyndte FØR alt data var indsamlet, så det giver mening at e-merge tabellen for alle subjects ikke findes
-%to events i ASSR_reg, start - slut 
-%load_convert.m for MMM - vidste ikke helt hvilket der blev brugt, da analysen stadig er i gang
-%sende artikel så jeg kan læse - har modtaget for ASSR, ikke udgivet for MMM
-%hvad er epoching 
-%trials i ASSR defineret i down_epoch_baseline_threshold.m linje 39-49, JA
-
-
-
-%%
-%load('/mnt/projects/VIA11/EEG/Anna/Flanker/Input_behavdata_Excel/Flanker_behav_Eprime_output/eegFlanker_47conditions_003.mat');
-%load('/mnt/projects/VIA11/EEG/Data/Flanker_47condition/Beh4EEG.mat');
-%load('/mnt/projects/VIA11/EEG/Data/Flanker_47condition/Beh4EEG_inclnew.mat') % 400 trials pr. subject
-%load('/mnt/projects/VIA11/EEG/Data/Flanker_47condition/eegFlanker_47conditions_003.mat');
-%load('/mnt/projects/VIA11/EEG/Data/###_Flanker/EEG_analysis/0003_data.mat')
-%load('/mnt/projects/VIA11/EEG/Data/###_Flanker/EEG_analysis/0003_info.mat')
-%load('/mrhome/simonyj/EEG_flanker/chanlocs.mat')
-
-%denne fil blev lavet ved forsøget, indeholder 1800 events
-%load('/mnt/projects/VIA11/EEG/Data/###_MMN/subject_009_MMN_triggers.mat')
-
-
-%load('/mrhome/simonyj/EEG_BIDS/derivatives/pipeline1/sub-009/ses-via15/beh/sub-009_ses-via15_events.mat')
-
-%events = ft_read_event('/mnt/projects/VIA11/EEG/Data/###_Flanker/003_Flanker.bdf');
-%events = ft_read_event('/mnt/projects/VIA11/EEG/Data/###_Flanker/003_Flanker.bdf');
-%data = ft_read_data('/mnt/projects/VIA11/EEG/Data/###_Flanker/003_Flanker.bdf');
-%hdr = sopen('/mnt/projects/VIA11/EEG/Data/###_Flanker/003_Flanker.bdf','r');
-
-%events_reg = ft_read_event('/mnt/projects/VIA11/EEG/Data/###_ASSR_reg/003_ASSR_reg.bdf');
-%events_irreg = ft_read_event('/mnt/projects/VIA11/EEG/Data/###_ASSR_irreg/003_ASSR_irreg.bdf');
-%events_MMM = ft_read_event('/mnt/projects/VIA11/EEG/Data/MMN_with_triggers/003_MMN_with_triggers.bdf');
-%events_MMM = ft_read_event('/mnt/projects/VIA11/EEG/Data/###_MMN/003_MMN.bdf');
-
-
-%loaded in onsetharvesting_eegflanker.m
-%[num,txt,raw] = xlsread('/mnt/projects/VIA11/EEG/add_24062019');
-%'/mnt/projects/VIA11/EEG/Anna/eegFlanker_47conditions_003.mat' files made 
-
-
-%%%%%%%%%%%% EEG DATA %%%%%%%%%%
-%loaded in /mnt/projects/VIA11/EEG/Scripts/Anna/Script/Flanker/Flanker_grandavg_pergroup.m
-%which makes plots
-% load('/mnt/projects/VIA11/EEG/Data/###_Flanker/EEG_analysis/0003_data.mat')
-% load('/mnt/projects/VIA11/EEG/Data/###_Flanker/EEG_analysis/0003_info.mat')
-
-%.bdf files and Beh4EEG_inclnew.mat are loaded in FlankerEEG_file2_preprocess.m
-% to generate 0003_data.mat and 0003_info.mat 
-% -- refchannels are given as EXG1 and EXG2 
-% -- ft_preprocessing function used 
-
-%% Testing things 
-
-% cfg = [];
-% cfg.dataset             = ['/mnt/projects/VIA11/EEG/Data/###_Flanker/009_Flanker.bdf'];
-% cfg.trialdef.prestim    = 0.5;
-% cfg.trialdef.poststim   = 1.5;
-% cfg.trialdef.eventtype  = 'STATUS';
-% cfg.trialdef.eventvalue = {65291, 65311};
-% cfg_con                 = ft_definetrial(cfg);
-% 
-% cfg.trialdef.eventvalue = {65301, 65321};
-% cfg_incon               = ft_definetrial(cfg);
-
-
-
-%check number of events 
-% events = ft_read_event('/mnt/projects/VIA11/EEG/Data/###_Flanker/003_Flanker.bdf');
-% ev = {events.value};
-% con=0;
-% incon=0;
-% aa = {ev{4:end}};
-% for ii = 1:length(aa)
-%     if aa{ii}==65291||aa{ii}==65311
-%         con = 0con +1;
-%     elseif aa{ii}==65301||aa{ii}==65321
-%         incon = incon +1;
-%     end 
-% end
-
-% event = cfg.events;
-% 
-%     onset        = (([event.sample]-1)/4096)';   % in seconds
-%     duration     = ([event.duration]/4096)';     % in seconds
-%     sample       = ([event.sample])';              % in samples, the first sample of the file is 1
-%     type         = {event.type}';
-%     value        = {event.value}';
-%     
-%   if all(cellfun(@isnumeric, type))
-%     % this can be an array of strings or values
-%     type = cell2mat(type);
-%   end
-%   if all(cellfun(@isnumeric, value))
-%     % this can be an array of strings or values
-%     value = cell2mat(value);
-%   end
-%   
-%   fn = fieldnames(event);
-%   additional_measures = {};
-%   for ii = 1:length(fn)-5
-%     col = {event.(fn{ii+5})};
-%     if all(cellfun(@isnumeric, col))
-%     %    this can be an array of strings or values
-%         additional_measures{end+1} = cell2mat(col);
-%     else
-%         additional_measures{end+1} = col;
-%     end
-%   end
-% 
-%   if exist('sample', 'var')
-%     tab = table(onset, sample, type, [value;100;100]);
-%     for ii = 1:length(fn)-5
-%         tab = [ table(additional_measures{ii}', 'VariableNames', {fn{ii+5}})  tab];
-%     end
-%   end
-  
-%     cfg.events = ft_read_event(fullfile(data_dir,file_names{subindx}));
-% 
-% 
-%     for col_idx = 1:length(behav_col_names)
-%         col_name = behav_col_names{col_idx};
-%         col_values = table2cell(behav_table(behav_table.Var2==sub_int,col_idx));
-%         
-%         if all(cellfun(@isdatetime, col_values))
-%             col_values = convertStringsToChars(string(col_values));
-%         end
-%         
-%         con_incon_idx = [cfg.events.value]==65291 | [cfg.events.value]==65311 | [cfg.events.value]==65301 | [cfg.events.value]==65321;
-%         event_values = cell(1,length(cfg.events));
-%         event_values([con_incon_idx]) = col_values;
-%         event_values([not(con_incon_idx)]) = {'n/a'};
-%         [cfg.events.(col_name)] = event_values{:};
-%     end
-
-
-
-%TAB = readtable('/mrhome/simonyj/EEG_BIDS/sub-009/ses-via11/eeg/sub-009_ses-via11_task-Flanker_events.tsv','FileType','text');
-
-
-% 
-% 
-% ft_tab = ft_read_tsv('/mrhome/simonyj/EEG_BIDS/sub-009/ses-via11/eeg/sub-009_ses-via11_task-Flanker_events.tsv');
-% ft_tab2 = output_compatible(ft_tab);
-% 
-% 
-% function val = output_compatible(val)
-% if istable(val)
-%   fn = val.Properties.VariableNames;
-%   for i=1:numel(fn)
-%     val.(fn{i}) = output_compatible(val.(fn{i}));
-%   end
-% elseif iscell(val)
-%   % use recursion to make all elements compatible
-%   val = cellfun(@output_compatible, val, 'UniformOutput', false);
-% elseif isnumeric(val) && numel(val)>1 && any(isnan(val))
-%   % convert and use recursion to make all elements compatible
-%   val = num2cell(val);
-%   val = cellfun(@output_compatible, val, 'UniformOutput', false);
-% else
-%   % write [] as 'n/a'
-%   % write nan as 'n/a'
-%   % write boolean as 'True' or 'False'
-%   if isempty(val)
-%     val = 'n/a';
-%   elseif isnan(val)
-%     val = 'n/a';
-%   elseif islogical(val)
-%     if val
-%       val = 'True';
-%     else
-%       val = 'False';
-%     end
-%   end
-% end
-% end
-
-%%%% CHANGE STRING NUMBERS TO NUMERIC VALUES IN CELL STRINGS OF TABLE
-%        fn = existing.Properties.VariableNames;
-%       for ii=1:numel(fn)
-%           a = existing.(fn{ii});
-%           if ~isnumeric(a)
-%               mask = cellfun(@(x) ~isnan(str2double(x)),a);
-%               aa = a;
-%               aa(mask) = cellfun(@str2num, a(mask,:), 'un', 0);
-%               existing.(fn{ii}) = aa;
-%           end
-%       end
-
-  

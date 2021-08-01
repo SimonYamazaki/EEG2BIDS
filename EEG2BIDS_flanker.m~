@@ -479,13 +479,15 @@ if strcmp(run_mode,'new_BIDS')
 end
 
 
-%% NOTES
+%%
 
 % DO NOW 
 % start nyt dataset - tag højde for uregelmæssigheder i filnavne
 % prøv evt. andre BIDS validators for at se om de kigger i json filer efter fejl/mangler
+% -start på nyt dataset for at lære hvordan script skal generaliseres
 % opdater job scriptet 
 % tage højde for session med nyt data_dir
+% stimuli skal i i stim dir 
 % lav funktioner som kan genbruges 
 
 
@@ -504,7 +506,6 @@ end
 %     -skal de originale kolonner også med?
 % conditionlabels som text eller som tal i events.tsv filen
 % trigger_delay file fra MMM_events.txt, hvad er det? 
-% hvor ligger selve stim lydene? -skal puttes i stim directory
 
 
 %DCM 
