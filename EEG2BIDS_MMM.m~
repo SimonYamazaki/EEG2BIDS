@@ -2,106 +2,70 @@ addpath('/home/simonyj/EEG_flanker/fieldtrip/')
 addpath('/home/simonyj/EEG_flanker/fieldtrip/fileio/')
 addpath('/home/simonyj/EEG_flanker/fieldtrip/utilities/')
 addpath('/mrhome/simonyj/biosig-code/biosig4matlab/t200_FileAccess/')
-
+addpath('/home/simonyj/EEG2BIDS/utils/')
 
 %% Setup  
 
 data_dir.via11 = '/home/simonyj/EEG_MMN';
 data_dir.via15 = '/home/simonyj/EEG_MMN';
-
-%sesssions 
-ses = fieldnames(data_dir);
-
-EEG2BIDS_tool_dir = '/home/simonyj/EEG2BIDS';
 bids_dir = '/home/simonyj/EEG_BIDS_MMN';
-
-if not(isfolder(bids_dir))
-    mkdir(bids_dir)
-end
-
+EEG2BIDS_tool_dir = '/home/simonyj/EEG2BIDS';
 task = 'MMN';
+
 nono_keywords_in_filename = {'Flanker','ASSR'};
 
+%only include these participant info variables
+participant_info_include = {'MRI_age_v11', 'Sex_child_v11','HighRiskStatus_v11'};
 
 % parse a subject info table from databse for participant information
 sub_info_table_path = '/mnt/projects/VIA11/database/VIA11_allkey_160621.csv';
+
+
+
+%% Run checks with before execution of script
+
+ses = fieldnames(data_dir);
+
 sub_info_table = readtable(sub_info_table_path);
 total_cols = width(sub_info_table);
 col_names = sub_info_table.Properties.VariableNames;
 via_id = sub_info_table.famlbnr;
 sub_info_table = table2cell(sub_info_table);
 
+[sub,bdf_file_names] = find_sub_ids(data_dir,'*_MMN.bdf',via_id,nono_keywords_in_filename);
+[sub_triggers,trigger_file_names] = find_sub_ids(data_dir,'*_triggers.mat',via_id);
 
-% extract file names and subject ids 
 
-file_struct = dir(sprintf('%s/*.bdf',data_dir));
-bdf_file_names = cellstr({file_struct.name});
-sub = cell(1,length(bdf_file_names));
-sub_split = cellfun(@(x) split(x,{'subject','sub','_','-','.'}),bdf_file_names,'UniformOutput',0);
-for ii = 1:length(bdf_file_names)
-    if ismember(task,sub_split{ii}) && ~any(ismember(nono_keywords_in_filename,sub_split{ii})) 
-        numeric_idx = cell2mat(cellfun(@(x) ~isnan(str2double(x)),sub_split{ii},'UniformOutput',0));
-        db_idx = ismember(sub_split{ii},cellstr(num2str(via_id,'%03d')));
-        sub{ii} = sub_split{ii}{and(numeric_idx,db_idx)};
+for s = 1:length(ses)
+    
+    if isequal(sub.(ses{s}),sub_triggers.(ses{s}))
+        fprintf('\nAll subjects with .bdf files also have trigger files for session %s\n',ses{s})
+    elseif length(sub.(ses{s}))==length(sub_triggers.(ses{s})) && ~isequal(sub,sub_triggers.(ses{s}))
+        fprintf('Did not find match between subjects with .bdf files and subjects with trigger .mat files. Check if subject ID search pattern is correct for session %s\n',ses{s})
+    elseif length(sub.(ses{s}))>length(sub_triggers.(ses{s}))
+        fprintf('Subject %s has .bdf file but are missing a trigger file for session %s\n',sub{~ismember(sub.(ses{s}),sub_triggers.(ses{s}))},ses{s} )
+    elseif length(sub.(ses{s}))<length(sub_triggers.(ses{s}))
+        fprintf('Subject %s has trigger file but are missing .bdf file for session %s\n',sub_triggers.(ses{s}){~ismember(sub_triggers.(ses{s}),sub.(ses{s}))},ses{s} )
     end
-end
-
-%%
-%check if subject has accompanying files
-xfile_struct = dir(sprintf('%s/*_triggers.mat',data_dir));
-xfile_names = cellstr({xfile_struct.name});
-sub_triggers = cell(1,length(xfile_names));
-sub_triggers_split = cellfun(@(x) split(x,{'sub','_','-'}),xfile_names,'UniformOutput',0);
-for ii = 1:length(xfile_names)
-    numeric_idx = cell2mat(cellfun(@(x) ~isnan(str2double(x)),sub_triggers_split{ii},'UniformOutput',0));
-    db_idx = ismember(sub_split{ii},cellstr(num2str(via_id,'%03d')));
-    sub_triggers{ii} = sub_triggers_split{ii}{and(numeric_idx,db_idx)};
-end
-
-if isequal(sub,sub_triggers)
-    fprintf('\nAll subjects with .bdf files also have trigger files \n')
-elseif length(sub)==length(sub_triggers) && ~isequal(sub,sub_triggers)
-    fprintf('Did not find match between subjects with .bdf files and subjects with trigger .mat files. Check if subject ID search pattern is correct \n')
-elseif length(sub)>length(sub_triggers)
-    fprintf('Subject %s has .bdf file but are missing a trigger file \n',sub{~ismember(sub,sub_triggers)} )
-elseif length(sub)<length(sub_triggers)
-    fprintf('Subject %s has trigger file but are missing .bdf file \n',sub_triggers{~ismember(sub_triggers,sub)} )
-end
-
-
-%find already existing subs by subject folders
-sub_dirs = dir(sprintf('%s/sub-*',bids_dir));
-file_dirs = cellstr({sub_dirs.name});
-existing_sub = cellfun(@(x) x(end-2:end),file_dirs,'un',0);
-
-%check that the subjects with existing sub folders have the needed files 
-files_checked = {'eeg.bdf','eeg.json','events.tsv','channels.tsv'};
-for f = 1:length(files_checked)
-    sub_dirs = dir(sprintf('%s/sub-*/ses-*/eeg/*_%s',bids_dir,files_checked{f}));
-    file_dirs = {sub_dirs.name};
-    subs_with_file = cellfun(@(x) x(5:7),file_dirs,'un',0);
-    if any(~ismember(existing_sub,subs_with_file))
-        sub2redo = existing_sub{~ismember(existing_sub,subs_with_file)};
-        existing_sub(strcmp(existing_sub,sub2redo))=[];
-        fprintf('Subject %s have missing BIDS files \n',sub2redo)
+    
+    
+    files_checked = {'eeg.bdf','eeg.json','events.tsv','channels.tsv'};
+    [existing_sub] = find_existing_subs(bids_dir,files_checked,ses(s));
+    sub.(ses{s}) = sub.(ses{s})(~ismember(sub.(ses{s}),existing_sub));
+    
+    
+    if isempty(sub.(ses{s})) && ~isempty(existing_sub)
+        assert(~isempty(sub.(ses{s})),'All relevant subject files are moved to BIDS data structure. Add more subject files to the data_dir.')
+    elseif ~isempty(sub.(ses{s})) && isempty(existing_sub)
+        fprintf('Creating new BIDS dataset from subject files \n')
+        run_mode = 'new_BIDS';
+    else
+        fprintf('Moving subject %s files into BIDS data structure \n',sub.(ses{s}){:})
+        run_mode = 'add_sub';
     end
-end
-sub = sub(~ismember(sub,existing_sub));
 
-
-if isempty(sub) && ~isempty(existing_sub)
-    assert(~isempty(sub),'All relevant subject files are moved to BIDS data structure. Add more subject files to the data_dir.')
-elseif ~isempty(sub) && isempty(existing_sub)
-    fprintf('Creating new BIDS dataset from subject files \n')
-    run_mode = 'new_BIDS';
-else
-    fprintf('Moving subject %s files into BIDS data structure \n',sub{:})
-    run_mode = 'add_sub';
 end
 
-
-%only include these participant info variables
-participant_info_include = {'MRI_age_v11', 'Sex_child_v11','HighRiskStatus_v11'};
 
 %read instructions 
 fid = fopen(fullfile(data_dir,'MMN_instructions.txt'), 'r');
@@ -121,6 +85,10 @@ fclose(fid);
 % https://github.com/fieldtrip/fieldtrip/blob/master/data2bids.m
 
 %sub = existing_sub;
+
+if not(isfolder(bids_dir))
+    mkdir(bids_dir)
+end
 
 for subindx=1:numel(sub)
     for sesindx=1:numel(ses)
