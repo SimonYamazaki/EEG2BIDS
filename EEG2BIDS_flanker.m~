@@ -24,6 +24,7 @@ file_struct = dir(sprintf('%s/*.bdf',data_dir));
 bdf_file_names = cellstr({file_struct.name});
 sub = cellfun(@(x) x(1:3),bdf_file_names,'un',0);
 
+
 %find already existing subs by subject folders
 sub_dirs = dir(sprintf('%s/sub-*',bids_dir));
 file_dirs = cellstr({sub_dirs.name});
@@ -479,16 +480,19 @@ if strcmp(run_mode,'new_BIDS')
 end
 
 
-%%
+%% NOTES
 
 % DO NOW 
 % start nyt dataset - tag højde for uregelmæssigheder i filnavne
+%       - hvad med de filer, der indeholder 2 slags data !!!!!!!!!!!!!
+%      -frasorter subjects: hvis der er ASSR i navnet / hvis navnets
+%      længde er for langt / filen er for stor / for mange events / ikke
+%      har trigger fil / ikke er på database listen / kør unique til sidst?
 % prøv evt. andre BIDS validators for at se om de kigger i json filer efter fejl/mangler
-% -start på nyt dataset for at lære hvordan script skal generaliseres
 % opdater job scriptet 
-% tage højde for session med nyt data_dir
-% stimuli skal i i stim dir 
-% lav funktioner som kan genbruges 
+% tage højde for session via11, via15 med nyt data_dir
+% lav funktioner som kan genbruges - evt en lang liste med boolean i start
+% Flanker træningsdata i /beh mappe?
 
 
 % TIL SIDST
@@ -506,6 +510,13 @@ end
 %     -skal de originale kolonner også med?
 % conditionlabels som text eller som tal i events.tsv filen
 % trigger_delay file fra MMM_events.txt, hvad er det? 
+% hvor ligger selve stim lydene? -skal puttes i stim directory
+% readme der ligger ved /mnt/projects/VIA11/EEG/Data/###_Flanker
+% hvad skal der gøres med de filer, som har 2 datasæt - hvordan har du analyseret det? 
+%       - fint at de bliver fjernet med nono-keyword og antal events? 
+%       - hvis tilføjes, skal der ligges en readme eller lign?
+% skal koden generaliseres med funktioner? fx. læs instructions.txt format, udtrækning af sub_id
+% Flanker træningsdata i /beh mappe?
 
 
 %DCM 
@@ -545,7 +556,11 @@ end
 
 %denne fil blev lavet ved forsøget, indeholder 1800 events
 %load('/mnt/projects/VIA11/EEG/Data/###_MMN/subject_009_MMN_triggers.mat')
-
+% 
+% dfile = '/mnt/projects/VIA11/EEG/Data/###_Flanker/130_ASSR_irreg+Flanker.bdf';
+% events1 = ft_read_event(dfile);
+% dfile = '/mnt/projects/VIA11/EEG/Data/###_Flanker/146_Flanker.bdf';
+% events2 = ft_read_event(dfile);
 
 %load('/mrhome/simonyj/EEG_BIDS/derivatives/pipeline1/sub-009/ses-via15/beh/sub-009_ses-via15_events.mat')
 
@@ -576,141 +591,34 @@ end
 % -- refchannels are given as EXG1 and EXG2 
 % -- ft_preprocessing function used 
 
-%% Testing things 
 
-% cfg = [];
-% cfg.dataset             = ['/mnt/projects/VIA11/EEG/Data/###_Flanker/009_Flanker.bdf'];
-% cfg.trialdef.prestim    = 0.5;
-% cfg.trialdef.poststim   = 1.5;
-% cfg.trialdef.eventtype  = 'STATUS';
-% cfg.trialdef.eventvalue = {65291, 65311};
-% cfg_con                 = ft_definetrial(cfg);
+
+
+
+
+
+
+%% Check things 
 % 
-% cfg.trialdef.eventvalue = {65301, 65321};
-% cfg_incon               = ft_definetrial(cfg);
-
-
-
-%check number of events 
-% events = ft_read_event('/mnt/projects/VIA11/EEG/Data/###_Flanker/003_Flanker.bdf');
-% ev = {events.value};
+% %check number of events 
+% ev = {events2.value};
 % con=0;
 % incon=0;
-% aa = {ev{4:end}};
+% start=0;
+% empty=0;
+% %aa = {ev{4:end}};
+% aa = ev;
 % for ii = 1:length(aa)
-%     if aa{ii}==65291||aa{ii}==65311
-%         con = 0con +1;
+%     if isempty(aa{ii})
+%         empty = empty +1;
+%     elseif aa{ii}==65291||aa{ii}==65311
+%         con = con +1;
 %     elseif aa{ii}==65301||aa{ii}==65321
 %         incon = incon +1;
+%     elseif aa{ii}==65281
+%         start = start +1;
 %     end 
 % end
-
-% event = cfg.events;
-% 
-%     onset        = (([event.sample]-1)/4096)';   % in seconds
-%     duration     = ([event.duration]/4096)';     % in seconds
-%     sample       = ([event.sample])';              % in samples, the first sample of the file is 1
-%     type         = {event.type}';
-%     value        = {event.value}';
-%     
-%   if all(cellfun(@isnumeric, type))
-%     % this can be an array of strings or values
-%     type = cell2mat(type);
-%   end
-%   if all(cellfun(@isnumeric, value))
-%     % this can be an array of strings or values
-%     value = cell2mat(value);
-%   end
-%   
-%   fn = fieldnames(event);
-%   additional_measures = {};
-%   for ii = 1:length(fn)-5
-%     col = {event.(fn{ii+5})};
-%     if all(cellfun(@isnumeric, col))
-%     %    this can be an array of strings or values
-%         additional_measures{end+1} = cell2mat(col);
-%     else
-%         additional_measures{end+1} = col;
-%     end
-%   end
-% 
-%   if exist('sample', 'var')
-%     tab = table(onset, sample, type, [value;100;100]);
-%     for ii = 1:length(fn)-5
-%         tab = [ table(additional_measures{ii}', 'VariableNames', {fn{ii+5}})  tab];
-%     end
-%   end
-  
-%     cfg.events = ft_read_event(fullfile(data_dir,file_names{subindx}));
-% 
-% 
-%     for col_idx = 1:length(behav_col_names)
-%         col_name = behav_col_names{col_idx};
-%         col_values = table2cell(behav_table(behav_table.Var2==sub_int,col_idx));
-%         
-%         if all(cellfun(@isdatetime, col_values))
-%             col_values = convertStringsToChars(string(col_values));
-%         end
-%         
-%         con_incon_idx = [cfg.events.value]==65291 | [cfg.events.value]==65311 | [cfg.events.value]==65301 | [cfg.events.value]==65321;
-%         event_values = cell(1,length(cfg.events));
-%         event_values([con_incon_idx]) = col_values;
-%         event_values([not(con_incon_idx)]) = {'n/a'};
-%         [cfg.events.(col_name)] = event_values{:};
-%     end
-
-
-
-%TAB = readtable('/mrhome/simonyj/EEG_BIDS/sub-009/ses-via11/eeg/sub-009_ses-via11_task-Flanker_events.tsv','FileType','text');
-
-
-% 
-% 
-% ft_tab = ft_read_tsv('/mrhome/simonyj/EEG_BIDS/sub-009/ses-via11/eeg/sub-009_ses-via11_task-Flanker_events.tsv');
-% ft_tab2 = output_compatible(ft_tab);
-% 
-% 
-% function val = output_compatible(val)
-% if istable(val)
-%   fn = val.Properties.VariableNames;
-%   for i=1:numel(fn)
-%     val.(fn{i}) = output_compatible(val.(fn{i}));
-%   end
-% elseif iscell(val)
-%   % use recursion to make all elements compatible
-%   val = cellfun(@output_compatible, val, 'UniformOutput', false);
-% elseif isnumeric(val) && numel(val)>1 && any(isnan(val))
-%   % convert and use recursion to make all elements compatible
-%   val = num2cell(val);
-%   val = cellfun(@output_compatible, val, 'UniformOutput', false);
-% else
-%   % write [] as 'n/a'
-%   % write nan as 'n/a'
-%   % write boolean as 'True' or 'False'
-%   if isempty(val)
-%     val = 'n/a';
-%   elseif isnan(val)
-%     val = 'n/a';
-%   elseif islogical(val)
-%     if val
-%       val = 'True';
-%     else
-%       val = 'False';
-%     end
-%   end
-% end
-% end
-
-%%%% CHANGE STRING NUMBERS TO NUMERIC VALUES IN CELL STRINGS OF TABLE
-%        fn = existing.Properties.VariableNames;
-%       for ii=1:numel(fn)
-%           a = existing.(fn{ii});
-%           if ~isnumeric(a)
-%               mask = cellfun(@(x) ~isnan(str2double(x)),a);
-%               aa = a;
-%               aa(mask) = cellfun(@str2num, a(mask,:), 'un', 0);
-%               existing.(fn{ii}) = aa;
-%           end
-%       end
-
-  
+% disp(con)
+% disp(incon)
+% disp(start)

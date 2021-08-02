@@ -6,32 +6,45 @@ addpath('/mrhome/simonyj/biosig-code/biosig4matlab/t200_FileAccess/')
 
 %% Setup  
 
-data_dir = '/home/simonyj/EEG_MMM';
-%data_dir.via15 = '/home/simonyj/EEG_MMM';
+data_dir = '/home/simonyj/EEG_MMN';
+%data_dir.via15 = '/home/simonyj/EEG_MMN';
 EEG2BIDS_tool_dir = '/home/simonyj/EEG2BIDS';
-bids_dir = '/home/simonyj/EEG_BIDS_MMM';
+bids_dir = '/home/simonyj/EEG_BIDS_MMN';
 
 if not(isfolder(bids_dir))
     mkdir(bids_dir)
 end
 
-task = 'MMM';
+task = 'MMN';
+nono_keywords_in_filename = {'Flanker','ASSR'};
 
 %sesssions 
 ses = {'via11','via15'};
+
+
+% parse a subject info table from databse for participant information
+sub_info_table_path = '/mnt/projects/VIA11/database/VIA11_allkey_160621.csv';
+sub_info_table = readtable(sub_info_table_path);
+total_cols = width(sub_info_table);
+col_names = sub_info_table.Properties.VariableNames;
+via_id = sub_info_table.famlbnr;
+sub_info_table = table2cell(sub_info_table);
 
 
 % extract file names and subject ids 
 file_struct = dir(sprintf('%s/*.bdf',data_dir));
 bdf_file_names = cellstr({file_struct.name});
 sub = cell(1,length(bdf_file_names));
-sub_split = cellfun(@(x) split(x,{'sub','_','-'}),bdf_file_names,'UniformOutput',0);
+sub_split = cellfun(@(x) split(x,{'subject','sub','_','-','.'}),bdf_file_names,'UniformOutput',0);
 for ii = 1:length(bdf_file_names)
-    numeric_idx = cell2mat(cellfun(@(x) ~isnan(str2double(x)),sub_split{ii},'UniformOutput',0));
-    len3_idx = cellfun(@(x) length(x)==3,sub_split{ii});
-    sub{ii} = sub_split{ii}{and(numeric_idx,len3_idx)};
+    if ismember(task,sub_split{ii}) && ~any(ismember(nono_keywords_in_filename,sub_split{ii})) 
+        numeric_idx = cell2mat(cellfun(@(x) ~isnan(str2double(x)),sub_split{ii},'UniformOutput',0));
+        db_idx = ismember(sub_split{ii},cellstr(num2str(via_id,'%03d')));
+        sub{ii} = sub_split{ii}{and(numeric_idx,db_idx)};
+    end
 end
 
+%%
 %check if subject has accompanying files
 xfile_struct = dir(sprintf('%s/*_triggers.mat',data_dir));
 xfile_names = cellstr({xfile_struct.name});
@@ -39,8 +52,8 @@ sub_triggers = cell(1,length(xfile_names));
 sub_triggers_split = cellfun(@(x) split(x,{'sub','_','-'}),xfile_names,'UniformOutput',0);
 for ii = 1:length(xfile_names)
     numeric_idx = cell2mat(cellfun(@(x) ~isnan(str2double(x)),sub_triggers_split{ii},'UniformOutput',0));
-    len3_idx = cellfun(@(x) length(x)==3,sub_triggers_split{ii});
-    sub_triggers{ii} = sub_triggers_split{ii}{and(numeric_idx,len3_idx)};
+    db_idx = ismember(sub_split{ii},cellstr(num2str(via_id,'%03d')));
+    sub_triggers{ii} = sub_triggers_split{ii}{and(numeric_idx,db_idx)};
 end
 
 if isequal(sub,sub_triggers)
@@ -85,19 +98,11 @@ else
 end
 
 
-% parse a subject info table from databse for participant information
-sub_info_table_path = '/mnt/projects/VIA11/database/VIA11_allkey_160621.csv';
-sub_info_table = readtable(sub_info_table_path);
-total_cols = width(sub_info_table);
-col_names = sub_info_table.Properties.VariableNames;
-via_id = sub_info_table.famlbnr;
-sub_info_table = table2cell(sub_info_table);
-
 %only include these participant info variables
 participant_info_include = {'MRI_age_v11', 'Sex_child_v11','HighRiskStatus_v11'};
 
 %read instructions 
-fid = fopen(fullfile(data_dir,'MMM_instructions.txt'), 'r');
+fid = fopen(fullfile(data_dir,'MMN_instructions.txt'), 'r');
 if fid == -1
   error('Cannot open file fpr reading: %s', FileName);
 end
@@ -189,6 +194,13 @@ for subindx=1:numel(sub)
 
     %%%%%%%%
     event_struct = ft_read_event(fullfile(data_dir,bdf_file_names{subindx}));
+    
+    %check that the .bdf file only contains the expected amount of events
+    if sum([event_struct.value]==65281)~=1
+        fprintf('Subject %s has more trigger start events than expected. Check whether the .bdf file includes tasks other than %s.',cfg.sub,task)
+        %fprintf('WARNING: Not including subject %s in the bids structure as the .bdf file includes more events than expected',cfg.sub,task)
+    end
+    
     fs = ft_read_header(fullfile(data_dir,bdf_file_names{subindx})).Fs; %4096
     delay = 37;
     
@@ -243,7 +255,6 @@ for subindx=1:numel(sub)
     cfg.events = table2struct(event_table);
 
     
-    
     data2bids(cfg);
     
     end
@@ -258,10 +269,10 @@ fid = fopen(fullfile(data_dir,event_txt_file), 'r');
 assert(fid~=-1,sprintf('Could not open %s',event_txt_file))
 
 txtC = textscan(fid, '%s', 'delimiter', '\n', 'whitespace', '');
-MMM_events  = txtC{1};
+MMN_events  = txtC{1};
 fclose(fid);
 
-MMM_split = cellfun(@(x) split(x,char(9)),MMM_events,'UniformOutput',0);
+MMN_split = cellfun(@(x) split(x,char(9)),MMN_events,'UniformOutput',0);
 
 if strcmp(run_mode,'new_BIDS')
     filename = fullfile(bids_dir, sprintf('task-%s_events.json',task));
@@ -291,20 +302,20 @@ if strcmp(run_mode,'new_BIDS')
     cfg.TaskEventsDescription.start_samples.Description = '????';
     cfg.TaskEventsDescription.start_samples.Units = '????';
     
-    desc = sprintf('The value characterizing the event. These are the values to %s, and the description of these values includes information about %s',MMM_split{1}{end},MMM_split{1}{1});
+    desc = sprintf('The value characterizing the event. These are the values to %s, and the description of these values includes information about %s',MMN_split{1}{end},MMN_split{1}{1});
     cfg.TaskEventsDescription.value.Description = desc;
     
     notes ='';
-    for s = 2:length(MMM_split)
-        level_key = MMM_split{s}{end};
+    for s = 2:length(MMN_split)
+        level_key = MMN_split{s}{end};
         if ~isnan(str2double(level_key))
-            cfg.TaskEventsDescription.value.Levels.(strcat('Int_',level_key)) = MMM_split{s}{1};
+            cfg.TaskEventsDescription.value.Levels.(strcat('Int_',level_key)) = MMN_split{s}{1};
         else
             notes = strcat(notes,' ',level_key);
         end
     end
     
-    cfg.TaskEventsDescription.Notes = strcat(notes,' The variables from subject_*SUB_ID*_MMN_triggers.mat files are added to the events.tsv files as start_sample -> start_sample, rand_ISI -> rand_ISI, mmm-codes -> conditionlabels.');
+    cfg.TaskEventsDescription.Notes = strcat(notes,' The variables from subject_*SUB_ID*_MMN_triggers.mat files are added to the events.tsv files as start_sample -> start_sample, rand_ISI -> rand_ISI, mmn-codes -> conditionlabels.');
     
     cfg.TaskEventsDescription.StimulusPresentation = '????';
     
