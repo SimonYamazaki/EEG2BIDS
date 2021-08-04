@@ -6,8 +6,12 @@ data_dir = varargin{1};
 file_pattern = varargin{2};
 via_id = varargin{3};
 
-ses = fieldnames(data_dir);
-
+if ~isstruct(data_dir)
+    ses = {'one_ses'};
+    data_dir.(ses{1}) = data_dir;
+elseif isstruct(data_dir)
+    ses = fieldnames(data_dir);
+end
 
 if nargin == 3
     nono_keywords_in_filename = {'DELETE_THIS_FILE'};

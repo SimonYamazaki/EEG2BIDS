@@ -484,14 +484,10 @@ end
 
 % DO NOW 
 % start nyt dataset - tag højde for uregelmæssigheder i filnavne
-%       - hvad med de filer, der indeholder 2 slags data !!!!!!!!!!!!!
-%      -frasorter subjects: hvis der er ASSR i navnet / hvis navnets
-%      længde er for langt / filen er for stor / for mange events / ikke
-%      har trigger fil / ikke er på database listen / kør unique til sidst?
 % prøv evt. andre BIDS validators for at se om de kigger i json filer efter fejl/mangler
 % opdater job scriptet 
-% tage højde for session via11, via15 med nyt data_dir
-% lav funktioner som kan genbruges 
+% tage højde for session via11, via15 med nyt data_dir - gør også for flanker
+% lav funktioner som kan genbruges - mangler nok kun electrodes
 
 
 % TIL SIDST

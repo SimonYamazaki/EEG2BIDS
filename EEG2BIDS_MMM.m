@@ -1,3 +1,5 @@
+clear; 
+
 addpath('/home/simonyj/EEG_flanker/fieldtrip/')
 addpath('/home/simonyj/EEG_flanker/fieldtrip/fileio/')
 addpath('/home/simonyj/EEG_flanker/fieldtrip/utilities/')
@@ -20,9 +22,11 @@ participant_info_include = {'MRI_age_v11', 'Sex_child_v11','HighRiskStatus_v11'}
 % parse a subject info table from databse for participant information
 sub_info_table_path = '/mnt/projects/VIA11/database/VIA11_allkey_160621.csv';
 
+event_txt_file = 'MMN_events.txt';
+instructions_txt = 'MMN_instructions.txt';
+participants_var_txt = 'participants_variables.txt';
 
-
-%% Run checks with before execution of script
+%% Configure the setup
 
 ses = fieldnames(data_dir);
 
@@ -35,47 +39,43 @@ sub_info_table = table2cell(sub_info_table);
 [sub,bdf_file_names] = find_sub_ids(data_dir,'*_MMN.bdf',via_id,nono_keywords_in_filename);
 [sub_triggers,trigger_file_names] = find_sub_ids(data_dir,'*_triggers.mat',via_id);
 
+%read instructions 
+InstructionsC = read_txt(fullfile(data_dir.via11,instructions_txt));
+
+finished_ses = false(1,length(ses));
+ses_run = false(1,length(ses));
+ses_add = false(1,length(ses));
 
 for s = 1:length(ses)
     
     if isequal(sub.(ses{s}),sub_triggers.(ses{s}))
-        fprintf('\nAll subjects with .bdf files also have trigger files for session %s\n',ses{s})
+        fprintf('\nAll subjects with .bdf files also have trigger files in session %s\n',ses{s})
     elseif length(sub.(ses{s}))==length(sub_triggers.(ses{s})) && ~isequal(sub,sub_triggers.(ses{s}))
         fprintf('Did not find match between subjects with .bdf files and subjects with trigger .mat files. Check if subject ID search pattern is correct for session %s\n',ses{s})
     elseif length(sub.(ses{s}))>length(sub_triggers.(ses{s}))
-        fprintf('Subject %s has .bdf file but are missing a trigger file for session %s\n',sub{~ismember(sub.(ses{s}),sub_triggers.(ses{s}))},ses{s} )
+        fprintf('Subject %s has .bdf file but are missing a trigger file in session %s\n',sub{~ismember(sub.(ses{s}),sub_triggers.(ses{s}))},ses{s} )
     elseif length(sub.(ses{s}))<length(sub_triggers.(ses{s}))
-        fprintf('Subject %s has trigger file but are missing .bdf file for session %s\n',sub_triggers.(ses{s}){~ismember(sub_triggers.(ses{s}),sub.(ses{s}))},ses{s} )
+        fprintf('Subject %s has trigger file but are missing .bdf file in session %s\n',sub_triggers.(ses{s}){~ismember(sub_triggers.(ses{s}),sub.(ses{s}))},ses{s} )
     end
-    
     
     files_checked = {'eeg.bdf','eeg.json','events.tsv','channels.tsv'};
-    [existing_sub] = find_existing_subs(bids_dir,files_checked,ses(s));
-    sub.(ses{s}) = sub.(ses{s})(~ismember(sub.(ses{s}),existing_sub));
-    
-    
-    if isempty(sub.(ses{s})) && ~isempty(existing_sub)
-        assert(~isempty(sub.(ses{s})),'All relevant subject files are moved to BIDS data structure. Add more subject files to the data_dir.')
-    elseif ~isempty(sub.(ses{s})) && isempty(existing_sub)
-        fprintf('Creating new BIDS dataset from subject files \n')
-        run_mode = 'new_BIDS';
-    else
-        fprintf('Moving subject %s files into BIDS data structure \n',sub.(ses{s}){:})
-        run_mode = 'add_sub';
-    end
+    existing_sub.(ses{s}) = find_existing_subs(bids_dir,files_checked,ses(s));
+    %sub.(ses{s}) = sub.(ses{s})(~ismember(sub.(ses{s}),existing_sub.(ses{s})));
 
+    finished_ses(s) = isempty(sub.(ses{s})) && ~isempty(existing_sub.(ses{s}));
+    ses_run(s) = ~isempty(sub.(ses{s})) && isempty(existing_sub.(ses{s}));
+    ses_add(s) = ~isempty(sub.(ses{s})) && ~isempty(existing_sub.(ses{s}));
 end
 
-
-%read instructions 
-fid = fopen(fullfile(data_dir,'MMN_instructions.txt'), 'r');
-if fid == -1
-  error('Cannot open file fpr reading: %s', FileName);
+assert( all(not(finished_ses)), 'All relevant subject files are moved to BIDS data structure in all sessions. Add more subject files to the data_dir.')
+if any(ses_run)
+    fprintf('Creating new BIDS dataset from subject files \n')
+    run_mode = 'new_BIDS';
+elseif any(ses_add)
+    fprintf('Moving subject %s files into BIDS data structure \n',sub.(ses{s}){:})
+    run_mode = 'add_sub';
 end
-txtC = textscan(fid, '%s', 'delimiter', '\n', 'whitespace', '');
-InstructionsC  = txtC{1};
-fclose(fid);
-
+    
 
 %% Generate BIDS structure and files
 
@@ -84,15 +84,13 @@ fclose(fid);
 % for more information on data2bids function see: 
 % https://github.com/fieldtrip/fieldtrip/blob/master/data2bids.m
 
-%sub = existing_sub;
-
 if not(isfolder(bids_dir))
     mkdir(bids_dir)
 end
 
-for subindx=1:numel(sub)
-    for sesindx=1:numel(ses)
-        
+for sesindx=1:numel(ses)
+    for subindx=1:numel(sub.(ses{sesindx}))
+
     % initialize config struct
     cfg = [];
     cfg.method    = 'copy';
@@ -114,7 +112,6 @@ for subindx=1:numel(sub)
     for col = 1:total_cols
         if contains(col_names{col},participant_info_include)
             cfg.participants.(col_names{col}) = sub_info_table{via_id==sub_int,col};
-
         elseif contains(col_names{col},participant_info_include) && isdatetime(sub_info_table{via_id==sub_int,col}) && isnat(sub_info_table{via_id==sub_int,col})
             cfg.participants.(col_names{col}) = 'n/a';
         elseif contains(col_names{col},participant_info_include) && isdatetime(sub_info_table{via_id==sub_int,col})
@@ -162,7 +159,7 @@ for subindx=1:numel(sub)
     cfg.eeg.CapManufacturersModelName = '????';
     cfg.eeg.EEGPlacementScheme = 'radial';
 
-    %%%%%%%%
+    %%%%%%%%  EVENTS %%%%%%%%
     event_struct = ft_read_event(fullfile(data_dir,bdf_file_names{subindx}));
     
     %check that the .bdf file only contains the expected amount of events
@@ -233,19 +230,12 @@ end
 
 %% Write events.json 
 
-%read from txt 
-event_txt_file = 'MMN_events.txt';
-fid = fopen(fullfile(data_dir,event_txt_file), 'r');
-assert(fid~=-1,sprintf('Could not open %s',event_txt_file))
-
-txtC = textscan(fid, '%s', 'delimiter', '\n', 'whitespace', '');
-MMN_events  = txtC{1};
-fclose(fid);
-
-MMN_split = cellfun(@(x) split(x,char(9)),MMN_events,'UniformOutput',0);
-
 if strcmp(run_mode,'new_BIDS')
+    %read from txt 
+    MMN_eventsC = read_txt(fullfile(data_dir.via11,event_txt_file));
+
     filename = fullfile(bids_dir, sprintf('task-%s_events.json',task));
+    
     cfg.TaskEventsDescription.onset.Description = 'Onset of stimuli';
     cfg.TaskEventsDescription.onset.Units = 's';
 
@@ -264,30 +254,22 @@ if strcmp(run_mode,'new_BIDS')
     cfg.TaskEventsDescription.delay.Units = 's';
     
     cfg.TaskEventsDescription.conditionlabel.Description = '????';
-    cfg.TaskEventsDescription.conditionlabel.Levels = '????';
-    
+    cfg.TaskEventsDescription.conditionlabel.Levels.Int_1 = '????';
+    cfg.TaskEventsDescription.conditionlabel.Levels.Int_2 = '????';
+
     cfg.TaskEventsDescription.rand_ISI.Description = '????';
     cfg.TaskEventsDescription.rand_ISI.Units = '????';
     
     cfg.TaskEventsDescription.start_samples.Description = '????';
     cfg.TaskEventsDescription.start_samples.Units = '????';
     
-    desc = sprintf('The value characterizing the event. These are the values to %s, and the description of these values includes information about %s',MMN_split{1}{end},MMN_split{1}{1});
-    cfg.TaskEventsDescription.value.Description = desc;
-    
-    notes ='';
-    for s = 2:length(MMN_split)
-        level_key = MMN_split{s}{end};
-        if ~isnan(str2double(level_key))
-            cfg.TaskEventsDescription.value.Levels.(strcat('Int_',level_key)) = MMN_split{s}{1};
-        else
-            notes = strcat(notes,' ',level_key);
-        end
-    end
-    
-    cfg.TaskEventsDescription.Notes = strcat(notes,' The variables from subject_*SUB_ID*_MMN_triggers.mat files are added to the events.tsv files as start_sample -> start_sample, rand_ISI -> rand_ISI, mmn-codes -> conditionlabels.');
-    
     cfg.TaskEventsDescription.StimulusPresentation = '????';
+    
+    %add value and notes to the event.json  
+    extra_notes = ' The variables from subject_*SUB_ID*_MMN_triggers.mat files are added to the events.tsv files as start_sample -> start_sample, rand_ISI -> rand_ISI, mmn-codes -> conditionlabels.';
+    cfg.TaskEventsDescription = read_events_txt(cfg.TaskEventsDescription,MMN_eventsC,extra_notes);
+    
+    non_described_vars = check_described_variables_in_tsv(bids_dir,cfg.TaskEventsDescription,sub,'events_tsv');
     
     fn = fieldnames(cfg.TaskEventsDescription);
     TaskEventsDescription_settings = keepfields(cfg.TaskEventsDescription, fn);
@@ -295,86 +277,25 @@ if strcmp(run_mode,'new_BIDS')
 end
 
 
-subs = [sub,existing_sub];
-
-for ii = 1:length(subs)
-    for jj = 1:length(ses)
-        
-        described_vars=fieldnames(cfg.TaskEventsDescription);
-        var_names = readtable(fullfile(bids_dir,sprintf('sub-%s/ses-%s/eeg/sub-%s_ses-%s_task-%s_events.tsv',subs{ii},ses{jj},subs{ii},ses{jj},task)),'FileType','text').Properties.VariableNames;
-
-        non_described_var_idx = ~ismember(var_names,described_vars);
-        
-        if any(non_described_var_idx)
-            non_described_vars = var_names(non_described_var_idx);
-            fprintf('The file %s is missing a description for the ',filename)
-            fprintf('%s variable, ',non_described_vars{:})
-            fprintf('for subject %s in session %s\n',subs{ii},ses{jj})
-        end
-    end
-end
-
 
 
 %% Write participants.json from .txt file
 
 if strcmp(run_mode,'new_BIDS')
     
+    %any additional info to include in json
+    cfg.ParticipantsDescription.participant_id.Description = 'The identification number of the subject';
+
     %read from txt 
-    fid = fopen(fullfile(data_dir,'participants_variables.txt'), 'r');
-    if fid == -1
-      error('Cannot open file fpr reading: %s', FileName);
-    end
-    txtC = textscan(fid, '%s', 'delimiter', '\n', 'whitespace', '');
-    participants_var  = txtC{1};
-    fclose(fid);
-
-    info_split = cellfun(@(x) split(x,':'),participants_var,'UniformOutput',0);
-    valid_keys = {'LongName','Description','Levels','Units'};
-    name_indices = find(contains(participants_var,'Name')==1);
+    participants_var = read_txt(fullfile(data_dir.via11,participants_var_txt));
+    cfg.ParticipantsDescription = read_participants_var_txt(cfg.ParticipantsDescription,participants_var,participant_info_include);
     
-    var_names = {};
-    for n = 1:length(name_indices)
-        ii = name_indices(n);
-        if strcmp(info_split{ii}{1},'Name') && ismember(strtrim(info_split{ii}{2}),participant_info_include)
-
-            for jj = 1:length(valid_keys)
-
-                if ismember(info_split{ii+jj}{1},valid_keys) && strcmp(info_split{ii+jj}{1},'Levels')                
-                    levelsC = strtrim(split(join(info_split{ii+jj}(2:end)),','));
-                    split_idx = cell2mat(cellfun(@(x) x(1),strfind(levelsC,' '),'UniformOutput',0));
-
-                    for kk = 1:length(levelsC)
-                        level_key = strtrim(levelsC{kk}(1:split_idx(kk)));
-                        level_value = strtrim(levelsC{kk}(split_idx(kk):end));
-                        if isnan(str2double(level_key))
-                            cfg.ParticipantsDescription.(strtrim(info_split{ii}{2})).(strtrim(info_split{ii+jj}{1})).(level_key) = level_value;
-                        else
-                            cfg.ParticipantsDescription.(strtrim(info_split{ii}{2})).(strtrim(info_split{ii+jj}{1})).(strcat('Int_',level_key)) = level_value;                        
-                        end
-                    end
-
-                elseif ismember(info_split{ii+jj}{1},valid_keys)
-                    cfg.ParticipantsDescription.(strtrim(info_split{ii}{2})).(strtrim(info_split{ii+jj}{1})) = strtrim(info_split{ii+jj}{2});
-                end
-                
-                if (ii+jj==length(info_split)) 
-                    break;
-                end
-            end
-
-            var_names{end+1}=strtrim(info_split{ii}{2});
-        end
-
-    end
-    non_described_var_idx = ismember(participant_info_include,var_names);
-    assert(any(non_described_var_idx),sprintf('%s variable is not described in participant info description .txt file',participant_info_include{non_described_var_idx}))
-
+    non_described_vars = check_described_variables_in_tsv(bids_dir,cfg.ParticipantsDescription,sub,'participants.tsv');
+    
     %write the file 
     filename = fullfile(bids_dir, 'participants.json');
     
     fn = fieldnames(cfg.ParticipantsDescription);
-    fn = fn(~cellfun(@isempty, regexp(fn, '^[A-Z].*')));
     ParticipantsDescription_settings = keepfields(cfg.ParticipantsDescription, fn);
     ft_write_json(filename, ParticipantsDescription_settings);
 end
