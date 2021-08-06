@@ -232,7 +232,6 @@ for sesindx=1:numel(ses)
 
     for i = 2:length(trig)
         S.trl(i,1)=S.trl(1,1)+trig(i);
-
         if mmn_codes(i)==1
             S.conditionlabels{i,:}= 'std';
         elseif mmn_codes(i) ==2
