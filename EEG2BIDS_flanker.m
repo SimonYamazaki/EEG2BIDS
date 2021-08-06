@@ -1,89 +1,108 @@
+clear;
 addpath('/home/simonyj/EEG_flanker/fieldtrip/')
 addpath('/home/simonyj/EEG_flanker/fieldtrip/fileio/')
 addpath('/home/simonyj/EEG_flanker/fieldtrip/utilities/')
 addpath('/mrhome/simonyj/biosig-code/biosig4matlab/t200_FileAccess/')
+addpath('/home/simonyj/EEG2BIDS/utils/')
 
 
 %% Setup  
 
-data_dir = '/home/simonyj/EEG_flanker';
+data_dir.via11 = '/home/simonyj/EEG_flanker';
+data_dir.via15 = '/home/simonyj/EEG_flanker';
 bids_dir = '/home/simonyj/EEG_BIDS_flanker';
 EEG2BIDS_tool_dir = '/home/simonyj/EEG2BIDS';
-
-if not(isfolder(bids_dir))
-    mkdir(bids_dir)
-end
-
 task = 'Flanker';
 
-%sesssions 
-ses = {'via11','via15'};
+n_trig_start = 400;
 
-% extract file names and subject ids 
-file_struct = dir(sprintf('%s/*.bdf',data_dir));
-bdf_file_names = cellstr({file_struct.name});
-sub = cellfun(@(x) x(1:3),bdf_file_names,'un',0);
-
-
-%find already existing subs by subject folders
-sub_dirs = dir(sprintf('%s/sub-*',bids_dir));
-file_dirs = cellstr({sub_dirs.name});
-existing_sub = cellfun(@(x) x(end-2:end),file_dirs,'un',0);
-
-%check that the subjects with existing sub folders have the needed files 
+nono_keywords_in_filename = {'MMN','ASSR'};
 files_checked = {'eeg.bdf','eeg.json','events.tsv','channels.tsv'};
-for f = 1:length(files_checked)
-    sub_dirs = dir(sprintf('%s/sub-*/ses-*/eeg/*_%s',bids_dir,files_checked{f}));
-    file_dirs = {sub_dirs.name};
-    subs_with_file = cellfun(@(x) x(5:7),file_dirs,'un',0);
-    if any(~ismember(existing_sub,subs_with_file))
-        sub2redo = existing_sub{~ismember(existing_sub,subs_with_file)};
-        existing_sub(strcmp(existing_sub,sub2redo))=[];
-        fprintf('Subject %s have missing BIDS files \n',sub2redo)
-    end
-end
-sub = sub(~ismember(sub,existing_sub));
 
-%sub = {sub{1:2}};
-
-if isempty(sub) && ~isempty(existing_sub)
-    assert(~isempty(sub),'All relevant subject files are moved to BIDS data structure. Add more subject files to the data_dir.')
-elseif ~isempty(sub) && isempty(existing_sub)
-    fprintf('Creating new BIDS dataset from subject files \n')
-    run_mode = 'new_BIDS';
-else
-    fprintf('Moving subject %s files into BIDS data structure \n',sub{:})
-    run_mode = 'add_sub';
-end
-
+%only include these participant info variables
+participant_info_include = {'MRI_age_v11', 'Sex_child_v11','HighRiskStatus_v11'};
 
 % parse a subject info table from databse for participant information
 sub_info_table_path = '/mnt/projects/VIA11/database/VIA11_allkey_160621.csv';
+
+behav_path = '/mnt/projects/VIA11/EEG/Anna/Flanker/Input_behavdata_Excel/Flankerbehav090119.xls';
+behav_col_names_path = '/mnt/projects/VIA11/EEG/Data/Flanker_47condition/EEG_Flanker.txt';
+
+event_txt_file = 'Flanker_events.txt';
+instructions_txt = 'Flanker_instructions.txt';
+participants_var_txt = 'participants_variables.txt';
+
+%% Configure the setup
+
+if isstruct(data_dir)
+    ses = fieldnames(data_dir);
+else
+    ses = {'None'};
+end
+
 sub_info_table = readtable(sub_info_table_path);
 total_cols = width(sub_info_table);
 col_names = sub_info_table.Properties.VariableNames;
 via_id = sub_info_table.famlbnr;
 sub_info_table = table2cell(sub_info_table);
 
-%only include these participant info variables
-participant_info_include = {'MRI_age_v11', 'Sex_child_v11','HighRiskStatus_v11'};
-
-%behav data xlsx file
-behav_path = '/mnt/projects/VIA11/EEG/Anna/Flanker/Input_behavdata_Excel/Flankerbehav090119.xls';
-behav_table = readtable(behav_path);
-
-%get coloumn names from elsewhere 
-behav_col_names_path = '/mnt/projects/VIA11/EEG/Data/Flanker_47condition/EEG_Flanker.txt';
-behav_col_names = readtable(behav_col_names_path).Properties.VariableNames;
+[sub,bdf_file_names] = find_sub_ids(data_dir,'*_Flanker.bdf',via_id,nono_keywords_in_filename);
+[sub_additional,additional_file_names] = find_sub_ids(data_dir,'*.edat2',via_id);
 
 %read instructions 
-fid = fopen(fullfile(data_dir,'Flanker_instructions.txt'), 'r');
-if fid == -1
-  error('Cannot open file fpr reading: %s', FileName);
+InstructionsC = read_txt(fullfile(data_dir.via11,instructions_txt));
+
+finished_ses = false(1,length(ses));
+ses_run = false(1,length(ses));
+ses_add = false(1,length(ses));
+
+for s = 1:length(ses)
+    
+    if isequal(sub.(ses{s}),sub_additional.(ses{s}))
+        fprintf('\nAll subjects with .bdf files also have trigger files in session %s\n',ses{s})
+    elseif length(sub.(ses{s}))==length(sub_additional.(ses{s})) && ~isequal(sub,sub_additional.(ses{s}))
+        fprintf('Did not find match between subjects with .bdf files and subjects with trigger .mat files. Check if subject ID search pattern is correct for session %s\n',ses{s})
+    elseif length(sub.(ses{s}))>length(sub_additional.(ses{s}))
+        fprintf('Subject %s has .bdf file but are missing a trigger file in session %s\n',sub{~ismember(sub.(ses{s}),sub_additional.(ses{s}))},ses{s} )
+    elseif length(sub.(ses{s}))<length(sub_additional.(ses{s}))
+        fprintf('Subject %s has trigger file but are missing .bdf file in session %s\n',sub_additional.(ses{s}){~ismember(sub_additional.(ses{s}),sub.(ses{s}))},ses{s} )
+    end
+    
+    existing_sub.(ses{s}) = find_existing_subs(bids_dir,files_checked,ses(s));
+    %sub.(ses{s}) = sub.(ses{s})(~ismember(sub.(ses{s}),existing_sub.(ses{s})));
+
+    finished_ses(s) = isempty(sub.(ses{s})) && ~isempty(existing_sub.(ses{s}));
+    ses_run(s) = ~isempty(sub.(ses{s})) && isempty(existing_sub.(ses{s}));
+    ses_add(s) = ~isempty(sub.(ses{s})) && ~isempty(existing_sub.(ses{s}));
 end
-txtC = textscan(fid, '%s', 'delimiter', '\n', 'whitespace', '');
-InstructionsC  = txtC{1};
-fclose(fid);
+
+assert( all(not(finished_ses)), 'All relevant subject files are moved to BIDS data structure in all sessions. Add more subject files to the data_dir.')
+if any(ses_run)
+    fprintf('Creating new BIDS dataset from subject files \n')
+    run_mode = 'new_BIDS';
+elseif any(ses_add)
+    fprintf('Moving subject %s files into BIDS data structure \n',sub.(ses{s}){:})
+    run_mode = 'add_sub';
+end
+   
+
+
+%behav data xlsx file
+behav_table = readtable(behav_path);
+nameless_cols = check_nameless_columns(behav_table,behav_path);
+
+%get column names from elsewhere 
+clear behav_col_names
+behav_col_names = readtable(behav_col_names_path).Properties.VariableNames;
+assert(length(behav_col_names)==width(behav_table),'The number of column names does not match the number of columns in table');
+
+if ~isempty(nameless_cols) && isempty(behav_col_names)
+    fprintf('In %s table the following columns are nameless ',behav_path)
+    fprintf('%i, ',nameless_cols)
+    fprintf('Get column names for behavioural data')
+elseif ~isempty(nameless_cols) && ~isempty(behav_col_names)
+    fprintf('Successfully added behavioural data column names')
+end
 
     
 %% Generate BIDS structure and files
@@ -119,19 +138,12 @@ for subindx=1:numel(sub)
     for col = 1:total_cols
         if contains(col_names{col},participant_info_include)
             cfg.participants.(col_names{col}) = sub_info_table{via_id==sub_int,col};
-
         elseif contains(col_names{col},participant_info_include) && isdatetime(sub_info_table{via_id==sub_int,col}) && isnat(sub_info_table{via_id==sub_int,col})
             cfg.participants.(col_names{col}) = 'n/a';
         elseif contains(col_names{col},participant_info_include) && isdatetime(sub_info_table{via_id==sub_int,col})
             cfg.participants.(col_names{col}) = strrep(char(sub_info_table{via_id==sub_int,col}),'/','-');
         elseif contains(col_names{col},participant_info_include) && isnumeric(sub_info_table{via_id==sub_int,col}) && isnan(sub_info_table{via_id==sub_int,col})
             cfg.participants.(col_names{col}) = 'n/a';
-            
-%         elseif strcmp(col_names{col},'Sex_child_v11')
-%             cfg.participants.(col_names{col}) = sex_codes{sub_info_table{via_id==sub_int,col}+1};
-%             participant_info_include(strcmp(participant_info_include,'Sex_child_v11'))=[];
-%         else
-%             cfg.participants.(col_names{col}) = sub_info_table{via_id==sub_int,col};
         end
     end
     
@@ -161,18 +173,17 @@ for subindx=1:numel(sub)
     cfg.eeg.DeviceSerialNumber    = '????';
     cfg.eeg.EEGReference          = 'Common Mode Sense (CMS) and Driven Right Leg (DRL)'; 
 
-    swf.filter = '????';
-    swf.filter_parameter = '10';
-    swf3.filter = '????';
-    swf3.filter_parameter = '100';
+    swf.filter_characteristic = '????';
+    swf.filter_parameter = 10;
 
     cfg.eeg.SoftwareFilters.Filter1       = swf;
-    cfg.eeg.SoftwareFilters.Filter3       = swf3;
+    cfg.eeg.SoftwareFilters.Filter3       = swf;
 
     cfg.eeg.CapManufacturer = 'Biosemi';
     cfg.eeg.CapManufacturersModelName = '????';
     cfg.eeg.EEGPlacementScheme = 'radial';
 
+    %%%%% EVENTS %%%%%
     cfg.events = ft_read_event(fullfile(data_dir,bdf_file_names{subindx}));
     
     for col_idx = 1:length(behav_col_names)
@@ -201,54 +212,38 @@ end
 
 %% Write events.json 
 
-%read from txt 
-fid = fopen(fullfile(data_dir,'Flanker_events.txt'), 'r');
-if fid == -1
-  error('Cannot open file fpr reading: %s', FileName);
-end
-txtC = textscan(fid, '%s', 'delimiter', '\n', 'whitespace', '');
-flanker_events  = txtC{1};
-fclose(fid);
-
-flanker_split = cellfun(@(x) split(x,char(9)),flanker_events,'UniformOutput',0);
-
 if strcmp(run_mode,'new_BIDS')
+    %read from txt 
+    eventsC = read_txt(fullfile(data_dir.via11,event_txt_file));
+
     filename = fullfile(bids_dir, sprintf('task-%s_events.json',task));
+    
     cfg.TaskEventsDescription.onset.Description = 'Onset of stimuli';
     cfg.TaskEventsDescription.onset.Units = 's';
 
     cfg.TaskEventsDescription.duration.Description = 'Duration of stimuli';
     cfg.TaskEventsDescription.duration.Units = 's';
 
-    cfg.TaskEventsDescription.sample.Description = 'EEG Sample';
+    cfg.TaskEventsDescription.sample.Description = '????';
     cfg.TaskEventsDescription.sample.Units = 's';
 
-    cfg.TaskEventsDescription.type.Description = 'Type of stimuli';
+    cfg.TaskEventsDescription.type.Description = '????';
     cfg.TaskEventsDescription.type.Levels.STATUS = 'STATUS type';
     cfg.TaskEventsDescription.type.Levels.Epoch = 'Epoch type';
     cfg.TaskEventsDescription.type.Levels.CM_in_range = 'CM_in_range type';
     
-    notes ='';
-    for s = 2:length(flanker_split)
-        level_key = flanker_split{s}{end};
-        if ~isnan(str2double(level_key))
-            cfg.FlankerEventsDescription.value.Levels.(strcat('Int_',level_key)) = flanker_split{s}{1};
-        else
-            notes = strcat(notes,level_key);
-        end
-    end
-    
-    desc = sprintf('The value characterizing the event. These are the values to %s, and the description of these values includes information about %s',flanker_split{1}{end},flanker_split{1}{1});
-    cfg.TaskEventsDescription.value.Description = desc;
-    
-    cfg.TaskEventsDescription.Notes = notes;
-    
     cfg.TaskEventsDescription.StimulusPresentation = '????';
-
+    
+    %add value and notes to the event.json  
+    cfg.TaskEventsDescription = read_events_txt(cfg.TaskEventsDescription,eventsC);
+    
+    non_described_vars = check_described_variables_in_tsv(bids_dir,cfg.TaskEventsDescription,sub,'events.tsv');
+    
     fn = fieldnames(cfg.TaskEventsDescription);
-    TaskEventsDescription_settings = keepfields(cfg.FlankerEventsDescription, fn);
+    TaskEventsDescription_settings = keepfields(cfg.TaskEventsDescription, fn);
     ft_write_json(filename, TaskEventsDescription_settings);
 end
+
 
 
 
@@ -256,61 +251,19 @@ end
 
 if strcmp(run_mode,'new_BIDS')
     
+    %any additional info to include in json
+    cfg.ParticipantsDescription.participant_id.Description = 'The identification number of the subject';
+
     %read from txt 
-    fid = fopen(fullfile(data_dir,'participants_variables.txt'), 'r');
-    if fid == -1
-      error('Cannot open file fpr reading: %s', FileName);
-    end
-    txtC = textscan(fid, '%s', 'delimiter', '\n', 'whitespace', '');
-    participants_var  = txtC{1};
-    fclose(fid);
-
-    info_split = cellfun(@(x) split(x,':'),participants_var,'UniformOutput',0);
-    valid_keys = {'LongName','Description','Levels','Units'};
-    name_indices = find(contains(participants_var,'Name')==1);
+    participants_var = read_txt(fullfile(data_dir.via11,participants_var_txt));
+    cfg.ParticipantsDescription = read_participants_var_txt(cfg.ParticipantsDescription,participants_var,participant_info_include);
     
-    var_names = {};
-    for n = 1:length(name_indices)
-        ii = name_indices(n);
-        if strcmp(info_split{ii}{1},'Name') && ismember(strtrim(info_split{ii}{2}),participant_info_include)
-
-            for jj = 1:length(valid_keys)
-
-                if ismember(info_split{ii+jj}{1},valid_keys) && strcmp(info_split{ii+jj}{1},'Levels')                
-                    levelsC = strtrim(split(join(info_split{ii+jj}(2:end)),','));
-                    split_idx = cell2mat(cellfun(@(x) x(1),strfind(levelsC,' '),'UniformOutput',0));
-
-                    for kk = 1:length(levelsC)
-                        level_key = strtrim(levelsC{kk}(1:split_idx(kk)));
-                        level_value = strtrim(levelsC{kk}(split_idx(kk):end));
-                        if isnan(str2double(level_key))
-                            cfg.ParticipantsDescription.(strtrim(info_split{ii}{2})).(strtrim(info_split{ii+jj}{1})).(level_key) = level_value;
-                        else
-                            cfg.ParticipantsDescription.(strtrim(info_split{ii}{2})).(strtrim(info_split{ii+jj}{1})).(strcat('Int_',level_key)) = level_value;                        
-                        end
-                    end
-
-                elseif ismember(info_split{ii+jj}{1},valid_keys)
-                    cfg.ParticipantsDescription.(strtrim(info_split{ii}{2})).(strtrim(info_split{ii+jj}{1})) = strtrim(info_split{ii+jj}{2});
-                end
-                
-                if (ii+jj==length(info_split)) 
-                    break;
-                end
-            end
-
-            var_names{end+1}=strtrim(info_split{ii}{2});
-        end
-
-    end
-    non_described_var_idx = ismember(participant_info_include,var_names);
-    assert(any(non_described_var_idx),sprintf('%s variable is not described in participant info description .txt file',participant_info_include{non_described_var_idx}))
-
+    non_described_vars = check_described_variables_in_tsv(bids_dir,cfg.ParticipantsDescription,sub,'participants.tsv');
+    
     %write the file 
     filename = fullfile(bids_dir, 'participants.json');
     
     fn = fieldnames(cfg.ParticipantsDescription);
-    fn = fn(~cellfun(@isempty, regexp(fn, '^[A-Z].*')));
     ParticipantsDescription_settings = keepfields(cfg.ParticipantsDescription, fn);
     ft_write_json(filename, ParticipantsDescription_settings);
 end
@@ -484,11 +437,13 @@ end
 
 % DO NOW 
 % start nyt dataset - tag højde for uregelmæssigheder i filnavne
-% prøv evt. andre BIDS validators for at se om de kigger i json filer efter fejl/mangler
-% opdater job scriptet 
-% tage højde for session via11, via15 med nyt data_dir - gør også for flanker
-% lav funktioner som kan genbruges - mangler nok kun electrodes
+% NEXT: opdater job scriptet - brug rubens nye linje kode
+% lav funktioner som kan genbruges - mangler nok kun electrodes - vent til der vides hvordan det skal struktureres
+% append BIDS_validation.txt til .out filen?
+% tilføje et subject af gangen med job scriptet / parse data_dir ?
 
+
+%commits fieldtrip: load hdr into cfg before passing to data2bids, check if unknwon columns are present in channels.tsv
 
 % TIL SIDST
 % lav liste med ting der skal udfyldes i json filerne  
@@ -496,7 +451,7 @@ end
 %    - participants.json filerne skal udfyldes med en .txt fil - husk stimuli
 %    - software, matlab scripts?
 %    - opgiv gentofte hospital som kontakt for mere info i forhold til participants.tsv
-
+%    - hvilken type channels er de external?
 
 %SPG
 %placering af CSM og DRL
@@ -505,13 +460,14 @@ end
 %     -skal de originale kolonner også med?
 % conditionlabels som text eller som tal i events.tsv filen
 % trigger_delay file fra MMM_events.txt, hvad er det? 
-% hvor ligger selve stim lydene? -skal puttes i stim directory
+% hvor ligger selve stim lydene? -skal puttes i stim directory - stim file column i events.tsv
 % readme der ligger ved /mnt/projects/VIA11/EEG/Data/###_Flanker
 % hvad skal der gøres med de filer, som har 2 datasæt - hvordan har du analyseret det? 
 %       - fint at de bliver fjernet med nono-keyword og antal events? 
 %       - hvis tilføjes, skal der ligges en readme eller lign?
-% skal koden generaliseres med funktioner? fx. læs instructions.txt format, udtrækning af sub_id
 % Flanker træningsdata i /beh mappe?
+% scripts brugt til at lave dataset i /code - triggers scripts?
+% hvilken type channels er de external? status channel i channels.tsv???
 
 
 %DCM 
@@ -586,11 +542,8 @@ end
 % -- refchannels are given as EXG1 and EXG2 
 % -- ft_preprocessing function used 
 
-
-
-
-
-
+%hdr=sopen('/mnt/projects/VIA11/EEG/Data/###_Flanker/003_Flanker.bdf','r');
+%uV under physDim
 
 
 %% Check things 

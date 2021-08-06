@@ -21,10 +21,9 @@ for filepath in filepaths:
     if '.m' or '.py' not in filepath:
         file_path = filepath.split(bids_dir)[1]
         if not validator.is_bids(file_path):
-            print(f"Found NON-BIDS compliant file: {file_path}")
+            print(f"Found NON-BIDS compliant file path: {file_path}")
             n_files += 1
-
+    
 if n_files == 0:
     print("All files are BIDS compliant")
     
-            

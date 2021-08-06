@@ -16,8 +16,11 @@ for s = 2:length(MMN_split)
     end
 end
 
-cfg_struct.Notes = strcat(notes,extra_notes);
-
+if nargin == 3
+    cfg_struct.Non_column_descriptor.Notes = strcat(notes,extra_notes);
+else
+    cfg_struct.Non_column_descriptor.Notes = notes;
+end
     
 end
 

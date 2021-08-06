@@ -9,3 +9,12 @@ source $HOME/anaconda3/bin/activate
 python change_json_int_keys.py
 python BIDS_validator_EEG.py
 
+module load nodejs
+/mnt/projects/VIA11/EEG/BIDS_validator/node_modules/bids-validator/bin/bids-validator EEG_BIDS_flanker
+
+
+
+/mnt/projects/VIA11/EEG/BIDS_validator/node_modules/bids-validator/bin/bids-validator EEG_BIDS_MMN --json > BIDS_validation.json 
+
+/mnt/projects/VIA11/EEG/BIDS_validator/node_modules/bids-validator/bin/bids-validator EEG_BIDS_MMN > BIDS_validation.txt
+
