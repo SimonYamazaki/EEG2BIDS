@@ -1,4 +1,4 @@
-clear
+function EEG2BIDS_MMN(varargin)
 
 addpath('/home/simonyj/EEG_flanker/fieldtrip/')
 addpath('/home/simonyj/EEG_flanker/fieldtrip/fileio/')
@@ -19,7 +19,7 @@ trig_start_value = 65281;
 n_trig_start = 1;
 
 %search pattern for data files
-data_file = '*_MMN.bdf';
+data_file = '*_MMN.bdf'; %only replace the subject ID with '*'
 nono_keywords_in_filename = {'Flanker','ASSR'};
 
 %search pattern for other files that must exist along side the data file
@@ -44,19 +44,41 @@ participants_var_txt = fullfile(data_dir.via11,'participants_variables.txt');
 
 %% Configure the setup
 
-if isstruct(data_dir)
-    ses = fieldnames(data_dir);
-else
-    ses = {'None'};
-end
-
 sub_info_table = readtable(sub_info_table_path);
 total_cols = width(sub_info_table);
 col_names = sub_info_table.Properties.VariableNames;
 via_id = sub_info_table.famlbnr;
 sub_info_table = table2cell(sub_info_table);
 
-[sub,bdf_file_names] = find_sub_ids(data_dir,data_file,via_id,nono_keywords_in_filename);
+this_file_path = mfilename('fullpath');
+this_file_path = strcat(this_file_path,'.m');
+
+if length(varargin) == 1
+    
+    if isstruct(data_dir)
+        assert(~isstruct(data_dir),sprintf('No session is specified, however, the script %s has %i session path(s)\n',this_file_path,length(fieldnames(data_dir))))
+    else
+        ses = {'None'};
+        sub.(ses{1}) = varargin{1};
+        bdf_file_names.(ses{1}) = {strrep(data_file,'*',sub.(ses{1}))};
+        fprintf('Only processing subject %s\n',sub.(ses{1}))
+    end
+    
+elseif length(varargin) == 2
+    ses = varargin(2);
+    sub.(ses{1}) = varargin{1};
+    bdf_file_names.(ses{1}) = {strrep(data_file,'*',sub.(ses{1}))};
+    fprintf('Only processing subject %s for session %s\n',sub.(ses{1}),ses{1})
+    
+else
+    if isstruct(data_dir)
+        ses = fieldnames(data_dir);
+    else
+        ses = {'None'};
+    end
+    [sub,bdf_file_names] = find_sub_ids(data_dir,data_file,via_id,nono_keywords_in_filename);
+end
+
 
 for f = 1:length(must_exist_files)
     must_exist_file_fieldname_cell = cellfun(@(x) split(x,{'.','*','-','_'}),must_exist_files,'UniformOutput',0);
@@ -69,27 +91,29 @@ ses_run = false(1,length(ses));
 ses_add = false(1,length(ses));
 
 for s = 1:length(ses)
-    
     fnames = fieldnames(subs_with_additional_files);
     for f = 1:length(fnames)
         fn = fnames{f};
-        if isequal(sub.(ses{s}),subs_with_additional_files.(fn).(ses{s}))
+        subs_with_file = subs_with_additional_files.(fn).(ses{s});
+        if all(ismember(sub.(ses{s}),subs_with_file))
             fprintf('All subjects with data files also have %s files in session %s\n',fn,ses{s})
-        elseif length(sub.(ses{s}))==length(subs_with_additional_files.(fn).(ses{s})) && ~isequal(sub,subs_with_additional_files.(fn).(ses{s}))
+        elseif length(sub.(ses{s}))==length(subs_with_file) && ~isequal(sub.(ses{s}),subs_with_file)
             fprintf('Did not find match between subjects with data files and subjects with %s files. Check if subject ID search pattern is correct for session %s\n',fn,ses{s})
-        elseif length(sub.(ses{s}))>length(subs_with_additional_files.(fn).(ses{s}))
-            fprintf('Subject %s has data file but are missing a %s file in session %s\n',sub{~ismember(sub.(ses{s}),subs_with_additional_files.(fn).(ses{s}))},fn,ses{s} )
-        elseif length(sub.(ses{s}))<length(subs_with_additional_files.(fn).(ses{s}))
-            fprintf('Subject %s has %s file but are missing data file in session %s\n',subs_with_additional_files.fn.(ses{s}){~ismember(subs_with_additional_files.(fn).(ses{s}),sub.(ses{s}))},fn,ses{s} )
+        elseif any(not(ismember(sub.(ses{s}),subs_with_file)))
+            fprintf('Subject %s has data file but are missing a %s file in session %s\n',sub.(ses{s}){~ismember(sub.(ses{s}),subs_with_file)},fn,ses{s} )
+        elseif any(not(ismember(subs_with_file,sub.(ses{s}))))
+            fprintf('Subject %s has %s file but are missing data file in session %s\n',subs_with_file{~ismember(subs_with_file,sub.(ses{s}))},fn,ses{s} )
         end
     end
+        
+    if length(varargin) ~= 2
+        existing_sub.(ses{s}) = find_existing_subs(bids_dir,files_checked,ses(s));
+        sub.(ses{s}) = sub.(ses{s})(~ismember(sub.(ses{s}),existing_sub.(ses{s})));
     
-    existing_sub.(ses{s}) = find_existing_subs(bids_dir,files_checked,ses(s));
-    %sub.(ses{s}) = sub.(ses{s})(~ismember(sub.(ses{s}),existing_sub.(ses{s})));
-
-    finished_ses(s) = isempty(sub.(ses{s})) && ~isempty(existing_sub.(ses{s}));
-    ses_run(s) = ~isempty(sub.(ses{s})) && isempty(existing_sub.(ses{s}));
-    ses_add(s) = ~isempty(sub.(ses{s})) && ~isempty(existing_sub.(ses{s}));
+        finished_ses(s) = isempty(sub.(ses{s})) && ~isempty(existing_sub.(ses{s}));
+        ses_run(s) = ~isempty(sub.(ses{s})) && isempty(existing_sub.(ses{s}));
+        ses_add(s) = ~isempty(sub.(ses{s})) && ~isempty(existing_sub.(ses{s}));
+    end
 end
 
 assert( all(not(finished_ses)), 'All relevant subject files are moved to BIDS data structure in all sessions. Add more subject files to the data_dir.')
@@ -101,6 +125,8 @@ elseif any(ses_add)
     for s = 1:length(ses_to_add)
         fprintf('Moving subject %s files into BIDS data structure for session %s\n',sub.(ses_to_add{s}){:},ses_to_add{:})
     end
+    run_mode = 'add_sub';
+elseif length(varargin)==2
     run_mode = 'add_sub';
 end
 
@@ -121,7 +147,7 @@ InstructionsC = read_txt(instructions_txt);
 
 for sesindx=1:numel(ses)
     for subindx=1:numel(sub.(ses{sesindx}))
-
+        
     % initialize config struct
     cfg = [];
     cfg.method    = 'copy';
@@ -138,8 +164,12 @@ for sesindx=1:numel(ses)
 
     cfg.include_scans = false;
     
-    % define datafile for current subject
-    cfg.dataset   = fullfile(data_dir.(ses{sesindx}),bdf_file_names.(ses{sesindx}){subindx});
+    % define data file for current subject
+    if isstruct(data_dir)
+        cfg.dataset   = char(fullfile(data_dir.(ses{sesindx}),bdf_file_names.(ses{sesindx}){subindx}));
+    else
+        cfg.dataset   = char(fullfile(data_dir,bdf_file_names.(ses{sesindx}){subindx}));
+    end
 
     % specify the information for the participants.tsv file
     for col = 1:total_cols
@@ -192,7 +222,7 @@ for sesindx=1:numel(ses)
     cfg.eeg.EEGPlacementScheme = 'radial';
 
     %%%%%%%%  EVENTS %%%%%%%%
-    event_struct = ft_read_event(fullfile(data_dir.(ses{sesindx}),bdf_file_names.(ses{sesindx}){subindx}));
+    event_struct = ft_read_event(cfg.dataset));
     
     %check that the .bdf file only contains the expected amount of events
     if sum([event_struct.value]==trig_start_value)~=n_trig_start
@@ -200,7 +230,7 @@ for sesindx=1:numel(ses)
         %fprintf('WARNING: Not including subject %s in the bids structure as the .bdf file includes more events than expected',cfg.sub,task)
     end
     
-    cfg.hdr = ft_read_header(fullfile(data_dir.(ses{sesindx}),bdf_file_names.(ses{sesindx}){subindx}));
+    cfg.hdr = ft_read_header(char(cfg.dataset));
     EXG_chan_types = cell(9,1);
     EXG_chan_types(:) = {'EMG'};
     cfg.hdr.chantype(end-8:end) = EXG_chan_types;
@@ -232,7 +262,6 @@ for sesindx=1:numel(ses)
 
     for i = 2:length(trig)
         S.trl(i,1)=S.trl(1,1)+trig(i);
-
         if mmn_codes(i)==1
             S.conditionlabels{i,:}= 'std';
         elseif mmn_codes(i) ==2
@@ -474,15 +503,15 @@ if not(isfolder(code_dir))
     mkdir(code_dir)
 end
 
-file_path = mfilename('fullpath');
-[ff,name,ext] = fileparts(file_path);
-copyfile(strcat(file_path,'.m'), fullfile(code_dir,strcat(name,'.m')), 'f')
+
+copyfile(strcat(this_file_path,'.m'), fullfile(code_dir,strcat(name,'.m')), 'f')
 
 %also copy BIDS validator, json fix scripts and job script 
 if strcmp(run_mode,'new_BIDS')
-    copyfile(fullfile(EEG2BIDS_tool_dir,'/BIDS_validator_EEG.py'), fullfile(code_dir,'/BIDS_validator_EEG.py'), 'f')
+    %copyfile(fullfile(EEG2BIDS_tool_dir,'/BIDS_validator_EEG.py'), fullfile(code_dir,'/BIDS_validator_EEG.py'), 'f')
     copyfile(fullfile(EEG2BIDS_tool_dir,'/change_json_int_keys.py'), fullfile(code_dir,'/change_json_int_keys.py'), 'f')
-    %copyfile(fullfile(EEG2BIDS_tool_dir,'/EEG_Flanker_job.sh'), fullfile(code_dir,'/EEG_Flanker_job.sh'), 'f')
+    copyfile(fullfile(EEG2BIDS_tool_dir,'/EEG_MMN_job.sh'), fullfile(code_dir,'/EEG_MMN_job.sh'), 'f')
+    copyfile(fullfile(EEG2BIDS_tool_dir,'/EEG2BIDS.sh'), fullfile(code_dir,'/EEG2BIDS.sh'), 'f')
 end
 
 
@@ -515,6 +544,8 @@ end
 
 fprintf('######  BIDS VALIDATION  #######\n\n')
 
+
+end 
 
 %%
 %ft_write_json('/home/simonyj/test.json',cfg.eeg)

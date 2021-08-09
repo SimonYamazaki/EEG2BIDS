@@ -14,7 +14,7 @@ elseif isstruct(data_dir)
 end
 
 if nargin == 3
-    nono_keywords_in_filename = {'DELETE_THIS_FILE'};
+    nono_keywords_in_filename = {'%%€264#&#%(/()&%€#!'}; %random string
 elseif nargin == 4
     nono_keywords_in_filename = varargin{4};
 end

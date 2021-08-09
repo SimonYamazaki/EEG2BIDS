@@ -437,13 +437,10 @@ end
 
 % DO NOW 
 % start nyt dataset - tag højde for uregelmæssigheder i filnavne
-% NEXT: opdater job scriptet - brug rubens nye linje kode
 % lav funktioner som kan genbruges - mangler nok kun electrodes - vent til der vides hvordan det skal struktureres
-% append BIDS_validation.txt til .out filen?
-% tilføje et subject af gangen med job scriptet / parse data_dir ?
-
-
-%commits fieldtrip: load hdr into cfg before passing to data2bids, check if unknwon columns are present in channels.tsv
+% NEXT: opdater job scriptet - brug rubens nye linje kode
+% dobbelt tjek creating new BIDS dataset printet 
+% prøv EEG2BIDS_MMN("009","via11") og EEG2BIDS_MMN()
 
 % TIL SIDST
 % lav liste med ting der skal udfyldes i json filerne  

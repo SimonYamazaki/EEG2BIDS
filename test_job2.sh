@@ -17,8 +17,8 @@ while [[ $# -gt 0 ]]; do
       shift # past argument
       shift # past value
       ;;
-    -ses|--session)
-      ses="$2"
+    -ts|--datetime)
+      ts="$2"
       shift # past argument
       shift # past value
       ;;
@@ -35,6 +35,6 @@ done
 
 set -- "${POSITIONAL[@]}" # restore positional parameters
 
-
 ts=$(date +%FT%T)
-sbatch --output="${BIDS_dir}/slurm-%j-${ts}.txt" EEG_MMN_job.sh --bids_dir ${BIDS_dir} --datetime ${ts} --subject ${subj} --session ${ses}
+sbatch --output="${BIDS_dir}/slurm-%j-${ts}.txt" test_job.sh --bids_dir ${BIDS_dir} --datetime ${ts} --subject ${subj}
+
