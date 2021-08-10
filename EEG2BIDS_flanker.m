@@ -438,9 +438,9 @@ end
 % DO NOW 
 % start nyt dataset - tag højde for uregelmæssigheder i filnavne
 % lav funktioner som kan genbruges - mangler nok kun electrodes - vent til der vides hvordan det skal struktureres
-% NEXT: opdater job scriptet - brug rubens nye linje kode
 % dobbelt tjek creating new BIDS dataset printet 
 % prøv EEG2BIDS_MMN("009","via11") og EEG2BIDS_MMN()
+
 
 % TIL SIDST
 % lav liste med ting der skal udfyldes i json filerne  
