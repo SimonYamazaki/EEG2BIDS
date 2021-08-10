@@ -33,6 +33,7 @@ participant_info_include = {'MRI_age_v11', 'Sex_child_v11','HighRiskStatus_v11'}
 
 % parse a subject info table from databse for participant information
 sub_info_table_path = '/mnt/projects/VIA11/database/VIA11_allkey_160621.csv';
+id_col_name = 'famlbnr';
 
 %path to stimulation files to include in /stimuli in bids root dir
 stim_files = {'/home/simonyj/EEG2BIDS/BIDS_validator_EEG.py','/home/simonyj/EEG2BIDS/BIDS_validator_EEG.py'};
@@ -42,48 +43,19 @@ event_txt_file = fullfile(data_dir.via11,'MMN_events.txt');
 instructions_txt = fullfile(data_dir.via11,'MMN_instructions.txt');
 participants_var_txt = fullfile(data_dir.via11,'participants_variables.txt');
 
+
 %% Configure the setup
 
 sub_info_table = readtable(sub_info_table_path);
-total_cols = width(sub_info_table);
-col_names = sub_info_table.Properties.VariableNames;
-via_id = sub_info_table.famlbnr;
-sub_info_table = table2cell(sub_info_table);
+via_id = sub_info_table.(id_col_name);
 
 this_file_path = mfilename('fullpath');
 this_file_path = strcat(this_file_path,'.m');
 
-if length(varargin) == 1
-    
-    if isstruct(data_dir)
-        assert(~isstruct(data_dir),sprintf('No session is specified, however, the script %s has %i session path(s)\n',this_file_path,length(fieldnames(data_dir))))
-    else
-        ses = {'None'};
-        sub.(ses{1}) = varargin{1};
-        bdf_file_names.(ses{1}) = {strrep(data_file,'*',sub.(ses{1}))};
-        fprintf('Only processing subject %s\n',sub.(ses{1}))
-    end
-    
-elseif length(varargin) == 2
-    ses = varargin(2);
-    sub.(ses{1}) = varargin{1};
-    bdf_file_names.(ses{1}) = {strrep(data_file,'*',sub.(ses{1}))};
-    fprintf('Only processing subject %s for session %s\n',sub.(ses{1}),ses{1})
-    
-else
-    if isstruct(data_dir)
-        ses = fieldnames(data_dir);
-    else
-        ses = {'None'};
-    end
-    [sub,bdf_file_names] = find_sub_ids(data_dir,data_file,via_id,nono_keywords_in_filename);
-end
+[sub,ses,bdf_file_names] = define_sub_ses_bdf(data_dir,varargin,data_file,via_id,nono_keywords_in_filename);
 
-
-for f = 1:length(must_exist_files)
-    must_exist_file_fieldname_cell = cellfun(@(x) split(x,{'.','*','-','_'}),must_exist_files,'UniformOutput',0);
-    must_exist_file_fieldname = must_exist_file_fieldname_cell{f}{end-1};
-    [subs_with_additional_files.(must_exist_file_fieldname),additional_file_names] = find_sub_ids(data_dir,must_exist_files{f},via_id);
+if exist('must_exist_files','var')
+    subs_with_additional_files = search_must_exist_files(data_dir,via_id,must_exist_files);
 end
 
 finished_ses = false(1,length(ses));
@@ -91,42 +63,35 @@ ses_run = false(1,length(ses));
 ses_add = false(1,length(ses));
 
 for s = 1:length(ses)
-    fnames = fieldnames(subs_with_additional_files);
-    for f = 1:length(fnames)
-        fn = fnames{f};
-        subs_with_file = subs_with_additional_files.(fn).(ses{s});
-        if all(ismember(sub.(ses{s}),subs_with_file))
-            fprintf('All subjects with data files also have %s files in session %s\n',fn,ses{s})
-        elseif length(sub.(ses{s}))==length(subs_with_file) && ~isequal(sub.(ses{s}),subs_with_file)
-            fprintf('Did not find match between subjects with data files and subjects with %s files. Check if subject ID search pattern is correct for session %s\n',fn,ses{s})
-        elseif any(not(ismember(sub.(ses{s}),subs_with_file)))
-            fprintf('Subject %s has data file but are missing a %s file in session %s\n',sub.(ses{s}){~ismember(sub.(ses{s}),subs_with_file)},fn,ses{s} )
-        elseif any(not(ismember(subs_with_file,sub.(ses{s}))))
-            fprintf('Subject %s has %s file but are missing data file in session %s\n',subs_with_file{~ismember(subs_with_file,sub.(ses{s}))},fn,ses{s} )
-        end
+    existing_sub.(ses{s}) = find_existing_subs(bids_dir,files_checked,ses(s));
+
+    if exist('subs_with_additional_files','var')
+        cmp_and_print_subs_with_file(sub,subs_with_additional_files,ses(s))
     end
         
-    if length(varargin) ~= 2
-        existing_sub.(ses{s}) = find_existing_subs(bids_dir,files_checked,ses(s));
+    if isempty(varargin)
         sub.(ses{s}) = sub.(ses{s})(~ismember(sub.(ses{s}),existing_sub.(ses{s})));
     
         finished_ses(s) = isempty(sub.(ses{s})) && ~isempty(existing_sub.(ses{s}));
         ses_run(s) = ~isempty(sub.(ses{s})) && isempty(existing_sub.(ses{s}));
         ses_add(s) = ~isempty(sub.(ses{s})) && ~isempty(existing_sub.(ses{s}));
+    else
+        finished_ses(s) = false;
+        ses_run(s) = ~isempty(sub.(ses{s})) && isempty(existing_sub.(ses{s}));
+        ses_add(s) = ~isempty(sub.(ses{s})) && ~isempty(existing_sub.(ses{s}));
     end
 end
 
-assert( all(not(finished_ses)), 'All relevant subject files are moved to BIDS data structure in all sessions. Add more subject files to the data_dir.')
+assert( all(not(finished_ses)), 'All relevant subject files are moved to BIDS data structure in all sessions. Add more subject files to the data_dir or run EEG2BIDS.sh for a specific subject.')
 if any(ses_run)
     fprintf('Creating new BIDS dataset from subject files \n')
     run_mode = 'new_BIDS';
 elseif any(ses_add)
     ses_to_add = ses(ses_add);
     for s = 1:length(ses_to_add)
+        ses_to_add{:}
         fprintf('Moving subject %s files into BIDS data structure for session %s\n',sub.(ses_to_add{s}){:},ses_to_add{:})
     end
-    run_mode = 'add_sub';
-elseif length(varargin)==2
     run_mode = 'add_sub';
 end
 
@@ -142,8 +107,10 @@ if not(isfolder(bids_dir))
     mkdir(bids_dir)
 end
 
-%read instructions 
-InstructionsC = read_txt(instructions_txt);
+%read instructions into cell 
+if exist('instructions_txt','var')
+    InstructionsC = read_txt(instructions_txt);
+end
 
 for sesindx=1:numel(ses)
     for subindx=1:numel(sub.(ses{sesindx}))
@@ -161,7 +128,7 @@ for sesindx=1:numel(ses)
     % get subject via ID 
     cfg.sub       = sub.(ses{sesindx}){subindx};
     sub_int       = str2num(cfg.sub);
-
+    
     cfg.include_scans = false;
     
     % define data file for current subject
@@ -170,26 +137,9 @@ for sesindx=1:numel(ses)
     else
         cfg.dataset   = char(fullfile(data_dir,bdf_file_names.(ses{sesindx}){subindx}));
     end
-
-    % specify the information for the participants.tsv file
-    for col = 1:total_cols
-        if contains(col_names{col},participant_info_include)
-            cfg.participants.(col_names{col}) = sub_info_table{via_id==sub_int,col};
-        elseif contains(col_names{col},participant_info_include) && isdatetime(sub_info_table{via_id==sub_int,col}) && isnat(sub_info_table{via_id==sub_int,col})
-            cfg.participants.(col_names{col}) = 'n/a';
-        elseif contains(col_names{col},participant_info_include) && isdatetime(sub_info_table{via_id==sub_int,col})
-            cfg.participants.(col_names{col}) = strrep(char(sub_info_table{via_id==sub_int,col}),'/','-');
-        elseif contains(col_names{col},participant_info_include) && isnumeric(sub_info_table{via_id==sub_int,col}) && isnan(sub_info_table{via_id==sub_int,col})
-            cfg.participants.(col_names{col}) = 'n/a';
-        end
-    end
     
-    if strcmp(run_mode,'new_BIDS')
-        cfg.dataset_description.BIDSVersion = '1.6';
-        cfg.dataset_description.Name = sprintf('%s EEG',task);
-        cfg.dataset_description.DatasetType = 'raw';
-        cfg.dataset_description.EthicsApprovals = {'The local Ethical Committee (Protocol number: H 16043682)','The Danish Data Protection Agency (IDnumber RHP-2017-003, I-suite no. 05333)'};
-    end
+    % specify the information for the participants.tsv file
+    cfg.participants = make_participants_cfg(sub_info_table,via_id,sub_int,participant_info_include);
     
     % specify some general information that will be added to the eeg.json file
     cfg.InstitutionName             = 'Centre for Functional and Diagnostic Imagning and Research, Danish Research Center for Magnetic Resonance, Amager and Hvidovre hospital';
@@ -204,11 +154,14 @@ for sesindx=1:numel(ses)
     cfg.eeg.Manufacturer          = 'Biosemi';
     cfg.eeg.ManufacturersModelName = '????';
     cfg.eeg.SoftwareVersions      = '????';
-    cfg.eeg.Instructions          = InstructionsC{1};
     %cfg.eeg.CogPOID               = '????';
     cfg.eeg.DeviceSerialNumber    = '????';
     cfg.eeg.EEGReference          = 'Common Mode Sense (CMS) and Driven Right Leg (DRL)'; 
 
+    if exist('InstructionsC','var')
+        cfg.eeg.Instructions          = InstructionsC{1};
+    end
+    
     swf.filter_characteristic = '????';
     swf.filter_parameter = 10;
     swf3.filter_characteristic = '????';
@@ -221,16 +174,8 @@ for sesindx=1:numel(ses)
     cfg.eeg.CapManufacturersModelName = '????';
     cfg.eeg.EEGPlacementScheme = 'radial';
 
-    %%%%%%%%  EVENTS %%%%%%%%
-    event_struct = ft_read_event(cfg.dataset));
-    
-    %check that the .bdf file only contains the expected amount of events
-    if sum([event_struct.value]==trig_start_value)~=n_trig_start
-        fprintf('Subject %s has more trigger start events than expected. Check whether the .bdf file includes tasks other than %s.',cfg.sub,task)
-        %fprintf('WARNING: Not including subject %s in the bids structure as the .bdf file includes more events than expected',cfg.sub,task)
-    end
-    
-    cfg.hdr = ft_read_header(char(cfg.dataset));
+    %%%%%%%  HEADER  %%%%%%%%%
+    cfg.hdr = ft_read_header(cfg.dataset);
     EXG_chan_types = cell(9,1);
     EXG_chan_types(:) = {'EMG'};
     cfg.hdr.chantype(end-8:end) = EXG_chan_types;
@@ -238,6 +183,17 @@ for sesindx=1:numel(ses)
     EXG_chan_units(:) = {'uV'};
     cfg.hdr.chanunit(end-8:end) = EXG_chan_units;
 
+    %%%%%%%%  EVENTS %%%%%%%%
+    event_struct = ft_read_event(cfg.dataset);
+    
+    %check that the .bdf file only contains the expected amount of events
+    if exist('trig_start_value','var')
+        if sum([event_struct.value]==trig_start_value)~=n_trig_start
+            fprintf('Subject %s has more trigger start events than expected. Check whether the .bdf file includes tasks other than %s.',cfg.sub,task)
+            %fprintf('WARNING: Not including subject %s in the bids structure as the .bdf file includes more events than expected',cfg.sub,task)
+        end
+    end
+    
     fs = cfg.hdr.Fs;  %e.g. 4096
     delay = 37;
     
@@ -300,8 +256,6 @@ end
 %% Write events.json 
 
 if strcmp(run_mode,'new_BIDS')
-    %read from txt 
-    MMN_eventsC = read_txt(event_txt_file);
 
     filename = fullfile(bids_dir, sprintf('task-%s_events.json',task));
     
@@ -338,9 +292,13 @@ if strcmp(run_mode,'new_BIDS')
     cfg.TaskEventsDescription.StimulusPresentation.SoftwareVersion = '????';
     %cfg.TaskEventsDescription.StimulusPresentation.code = '????';
 
-    %add value and notes to the event.json  
-    extra_notes = ' The variables from subject_*SUB_ID*_MMN_triggers.mat files are added to the events.tsv files as start_sample -> start_sample, rand_ISI -> rand_ISI, mmn-codes -> conditionlabels.';
-    cfg.TaskEventsDescription = read_events_txt(cfg.TaskEventsDescription,MMN_eventsC,extra_notes);
+    if exist('event_txt_file','var')
+        %read from txt 
+        eventsC = read_txt(event_txt_file);
+        %add value and notes to the event.json  
+        extra_notes = ' The variables from subject_*SUB_ID*_MMN_triggers.mat files are added to the events.tsv files as start_sample -> start_sample, rand_ISI -> rand_ISI, mmn-codes -> conditionlabels.';
+        cfg.TaskEventsDescription = read_events_txt(cfg.TaskEventsDescription,eventsC,extra_notes);
+    end
     
     non_described_vars = check_described_variables_in_tsv(bids_dir,cfg.TaskEventsDescription,sub,'events.tsv');
     

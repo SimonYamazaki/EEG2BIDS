@@ -436,11 +436,10 @@ end
 %% NOTES
 
 % DO NOW 
-% start nyt dataset - tag højde for uregelmæssigheder i filnavne
 % lav funktioner som kan genbruges - mangler nok kun electrodes - vent til der vides hvordan det skal struktureres
-% dobbelt tjek creating new BIDS dataset printet 
-% prøv EEG2BIDS_MMN("009","via11") og EEG2BIDS_MMN()
-
+% samle warnings et bestemt sted i .out filen, så man nemmere kan se det for hele datasettet i stedet for at skulle lede det hele igennem?
+% channels.mat i ASSR_reg data mappen?
+% .bidsignore cluster_submissions
 
 % TIL SIDST
 % lav liste med ting der skal udfyldes i json filerne  
@@ -465,7 +464,9 @@ end
 % Flanker træningsdata i /beh mappe?
 % scripts brugt til at lave dataset i /code - triggers scripts?
 % hvilken type channels er de external? status channel i channels.tsv???
-
+% hvor meget skal i task instructions fra word filen?
+% skal trl2(1,3)=-fs; med i ASSR events
+% skal både duration og start stop være med i ASSR events
 
 %DCM 
 %læs manual 
@@ -567,3 +568,25 @@ end
 % disp(con)
 % disp(incon)
 % disp(start)
+
+%% Testing what comes out of spm_eeg_definetrial(S)
+% addpath('/mnt/projects/VIA11/EEG/EEG_tools/spm12.7771')
+% spm('defaults','eeg');
+% filename = '/home/simonyj/EEG_ASSR_reg/mont_dnotch_fLfH_spmeeg_009_ASSR_reg.mat';
+% eventvalue = 1;
+% 
+% %Epoching
+% %cd('/mnt/projects/VIA11/EEG/Analysis_ASSR/Pre_processed');
+% S = [];
+% S.D = filename;
+% S.timewin                 = [-1000 2000];
+% S.trialdef.conditionlabel = 'click';
+% S.trialdef.eventtype      = 'STATUS';
+% S.trialdef.eventvalue     = eventvalue;
+% S.traildef.trlshift       = 0;
+% S.reviewtrials            = 0;
+% S.save                    = 0;
+% [trl, conditionlabels, S] = spm_eeg_definetrial(S);
+% 
+% trl
+

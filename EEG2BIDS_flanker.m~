@@ -436,16 +436,10 @@ end
 %% NOTES
 
 % DO NOW 
-% start nyt dataset - tag højde for uregelmæssigheder i filnavne
-% NEXT: opdater job scriptet - brug rubens nye linje kode
 % lav funktioner som kan genbruges - mangler nok kun electrodes - vent til der vides hvordan det skal struktureres
-% append BIDS_validation.txt til .out filen?
-% tilføje et subject af gangen med job scriptet / parse data_dir ?
-
-
-%commits fieldtrip: load hdr into cfg before passing to data2bids, check if unknwon columns are present in channels.tsv
-%commits EEG2BIDS: loading the header into the cfg struct, removed properties from eeg.json, added channel type and
-%units to external channels, multiple additional files needed
+% 120 eller 121 trials i ASSR
+% samle warnings et bestemt sted i .out filen, så man nemmere kan se det for hele datasettet i stedet for at skulle lede det hele igennem?
+% channels.mat i ASSR_reg data mappen?
 
 % TIL SIDST
 % lav liste med ting der skal udfyldes i json filerne  
@@ -470,7 +464,8 @@ end
 % Flanker træningsdata i /beh mappe?
 % scripts brugt til at lave dataset i /code - triggers scripts?
 % hvilken type channels er de external? status channel i channels.tsv???
-
+% hvor meget skal i task instructions fra word filen?
+% skal trl2(1,3)=-fs; med i ASSR events
 
 %DCM 
 %læs manual 
@@ -572,3 +567,23 @@ end
 % disp(con)
 % disp(incon)
 % disp(start)
+
+%% Testing what comes out of spm_eeg_definetrial(S)
+filename = fullfile(data_dir.via11,'mont_dnotch_fLfH_spmeeg_009_ASSR_reg.mat');
+
+eventvalue = 
+
+%Epoching
+%cd('/mnt/projects/VIA11/EEG/Analysis_ASSR/Pre_processed');
+S = [];
+S.D = filename;
+S.timewin                 = [-1000 2000];
+S.trialdef.conditionlabel = 'click';
+S.trialdef.eventtype      = 'STATUS';
+S.trialdef.eventvalue     = eventvalue;
+S.traildef.trlshift       = 0;
+S.reviewtrials            = 0;
+S.save                    = 0;
+[trl, conditionlabels, S] = spm_eeg_definetrial(S);
+
+trl

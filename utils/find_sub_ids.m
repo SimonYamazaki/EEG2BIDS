@@ -6,17 +6,30 @@ data_dir = varargin{1};
 file_pattern = varargin{2};
 via_id = varargin{3};
 
+if nargin == 3
+    nono_keywords_in_filename = {'%%€264#&#%(/()&%€#!'}; %random string
+    search_method = 'auto';
+elseif nargin == 4
+    nono_keywords_in_filename = varargin{4};
+    search_method = 'auto';
+elseif ismember('method',varargin) && nargin == 6
+    nono_keywords_in_filename = {'%%€264#&#%(/()&%€#!'}; %random string
+    search_method = varargin{find(strcmp(varargin,'method')==1)+1};
+    char_idx = varargin{end};
+elseif ismember('method',varargin) && nargin == 7
+    nono_keywords_in_filename = varargin{4};
+    search_method = varargin{find(strcmp(varargin,'method')==1)+1};
+    char_idx = varargin{end};
+else
+    fprintf('Missing arguments to find_sub_ids function')
+end
+
+
 if ~isstruct(data_dir)
-    ses = {'one_ses'};
+    ses = {'None'};
     data_dir.(ses{1}) = data_dir;
 elseif isstruct(data_dir)
     ses = fieldnames(data_dir);
-end
-
-if nargin == 3
-    nono_keywords_in_filename = {'%%€264#&#%(/()&%€#!'}; %random string
-elseif nargin == 4
-    nono_keywords_in_filename = varargin{4};
 end
 
 for s = 1:length(ses)
@@ -24,16 +37,25 @@ for s = 1:length(ses)
     file_struct = dir(sprintf('%s/%s',data_dir.(ses{s}),file_pattern));
     bdf_file_names.(ses{s}) = cellstr({file_struct.name});
     sub.(ses{s}) = cell(1,length(bdf_file_names.(ses{s})));
-    sub_split = cellfun(@(x) split(x,{'subject','sub','_','-','.'}),bdf_file_names.(ses{s}),'UniformOutput',0);
+    bdf_file_split = cellfun(@(x) split(x,{'subject','sub','_','-','.'}),bdf_file_names.(ses{s}),'UniformOutput',0);
     
     for ii = 1:length(bdf_file_names.(ses{s}))
-        if ~any(ismember(nono_keywords_in_filename,sub_split{ii})) 
-            numeric_idx = cell2mat(cellfun(@(x) ~isnan(str2double(x)),sub_split{ii},'UniformOutput',0));
-            db_idx = ismember(sub_split{ii},cellstr(num2str(via_id,'%03d')));
-            sub.(ses{s}){ii} = sub_split{ii}{and(numeric_idx,db_idx)};
+        if strcmp(search_method,'auto')
+            if ~any(contains(nono_keywords_in_filename,bdf_file_names.(ses{s}))) 
+                numeric_idx = cell2mat(cellfun(@(x) ~isnan(str2double(x)),bdf_file_split{ii},'UniformOutput',0));
+                db_idx = ismember(bdf_file_split{ii},cellstr(num2str(via_id,'%03d')));
+                sub.(ses{s}){ii} = bdf_file_split{ii}{and(numeric_idx,db_idx)};
+            end
+            
+        elseif strcmp(search_method,'manual')
+            if ~any(contains(nono_keywords_in_filename,bdf_file_names.(ses{s}))) 
+                sub_bdf_file = bdf_file_names.(ses{s}){ii};
+                sub.(ses{s}){ii} = sub_bdf_file(char_idx);
+            end
         end
     end
 end
+
 
 end
 

@@ -49,10 +49,9 @@ set -- "${POSITIONAL[@]}" # restore positional parameters
 if [[ -z "${sess}" && -z "${subj}" ]]; then
 echo "Running BIDS dataset without any specific subject or session"
 /mnt/depot64/matlab/R2020a/bin/matlab -nodesktop -nojvm -nosplash -r "${script2exe}()"
-
 source $HOME/anaconda3/bin/activate
 python change_json_int_keys.py
-
+echo "#####  BIDS VALIDATION OUTPUT  #####"
 module load nodejs
 /mnt/projects/VIA11/EEG/BIDS_validator/node_modules/bids-validator/bin/bids-validator $BIDS_dir >> "${BIDS_dir}/cluster_submissions/slurm-${SLURM_JOB_ID}-${ts}.txt"
 
@@ -62,6 +61,7 @@ echo "Running BIDS dataset for subject "${subj}" but without any session"
 /mnt/depot64/matlab/R2020a/bin/matlab -nodesktop -nojvm -nosplash -r "${script2exe}(${subj})"
 source $HOME/anaconda3/bin/activate
 python change_json_int_keys.py
+echo "#####  BIDS VALIDATION OUTPUT  #####"
 module load nodejs
 /mnt/projects/VIA11/EEG/BIDS_validator/node_modules/bids-validator/bin/bids-validator $BIDS_dir >> "${BIDS_dir}/cluster_submissions/slurm-${SLURM_JOB_ID}-${ts}-${subj}.txt"
 
@@ -70,6 +70,7 @@ echo "Running BIDS dataset for subject "${subj}" in session "${sess}""
 /mnt/depot64/matlab/R2020a/bin/matlab -nodesktop -nojvm -nosplash -r "${script2exe}(${subj},${sess})"
 source $HOME/anaconda3/bin/activate
 python change_json_int_keys.py
+echo "#####  BIDS VALIDATION OUTPUT  #####"
 module load nodejs
 /mnt/projects/VIA11/EEG/BIDS_validator/node_modules/bids-validator/bin/bids-validator $BIDS_dir >> "${BIDS_dir}/cluster_submissions/slurm-${SLURM_JOB_ID}-${ts}-${subj}-${sess}.txt"
 fi
