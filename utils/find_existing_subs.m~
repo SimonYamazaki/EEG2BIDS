@@ -1,25 +1,17 @@
-function [existing_sub] = find_existing_subs(varargin)
+function [existing_sub] = find_existing_subs(bids_dir,files_checked,ses)
 %UNTITLED5 Summary of this function goes here
 %   Detailed explanation goes here
-
-bids_dir = varargin{1};
-files_checked = varargin{2};
 
 %find already existing subs by subject folders
 sub_dirs = dir(sprintf('%s/sub-*',bids_dir));
 file_dirs = cellstr({sub_dirs.name});
 existing_sub_root = cellfun(@(x) x(end-2:end),file_dirs,'un',0);
 
-if nargin > 2
-    ses = varargin{3};
-    for ii = 1:length(ses)
-        existing_sub.(ses{ii}) = existing_sub_root;
-    end
-else
+if n
+    existing_sub.(ses{s}) = existing_sub_root;
     ses = {'None'};
     existing_sub.(ses{1}) = existing_sub_root;
 end
-
 
 %check that the subjects with existing sub folders have the needed files 
 for f = 1:length(files_checked)

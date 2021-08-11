@@ -438,8 +438,8 @@ end
 % DO NOW 
 % lav funktioner som kan genbruges - mangler nok kun electrodes - vent til der vides hvordan det skal struktureres
 % samle warnings et bestemt sted i .out filen, så man nemmere kan se det for hele datasettet i stedet for at skulle lede det hele igennem?
-% channels.mat i ASSR_reg data mappen?
 % .bidsignore cluster_submissions
+% ASSR_irreg
 
 % TIL SIDST
 % lav liste med ting der skal udfyldes i json filerne  
@@ -454,7 +454,7 @@ end
 %electrodes, hvordan skal det struktureres? 
 %rækkefølge af allerede eksisterende events fra bdf, + hvilke kolonner skal udfyldes
 %     -skal de originale kolonner også med?
-% conditionlabels som text eller som tal i events.tsv filen
+% conditionlabels som text eller som tal i events.tsv filen - skal de tilføjede events være "STATUS"?
 % trigger_delay file fra MMM_events.txt, hvad er det? 
 % hvor ligger selve stim lydene? -skal puttes i stim directory - stim file column i events.tsv
 % readme der ligger ved /mnt/projects/VIA11/EEG/Data/###_Flanker
@@ -491,7 +491,7 @@ end
 %sende artikel så jeg kan læse - har modtaget for ASSR, ikke udgivet for MMM
 %hvad er epoching 
 %trials i ASSR defineret i down_epoch_baseline_threshold.m linje 39-49, JA
-
+% channels.mat i ASSR_reg data mappen? - er bare channel labels A1, A2 ...
 
 
 %%

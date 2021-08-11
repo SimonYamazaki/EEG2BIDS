@@ -6,8 +6,9 @@ data_dir = varargin{1};
 vars_input = varargin{2};
 data_file = varargin{3};
 via_id = varargin{4};
-if nargin >= 5
-    nono_keywords_in_filename = varargin{5};
+this_file_path = varargin{5};
+if nargin >= 6
+    nono_keywords_in_filename = varargin{6};
 end
 
 char_arguments = varargin(cellfun(@(c) ischar(c), varargin));

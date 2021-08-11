@@ -12,6 +12,7 @@ data_dir.via11 = '/home/simonyj/EEG_MMN';
 data_dir.via15 = '/home/simonyj/EEG_MMN';
 bids_dir = '/home/simonyj/EEG_BIDS_MMN';
 EEG2BIDS_tool_dir = '/home/simonyj/EEG2BIDS';
+%task Definition: Each task has a unique label that MUST only consist of letters and/or numbers (other characters, including spaces and underscores, are not allowed).
 task = 'MMN';
 
 %trigger start event value and the number of expected event values
@@ -52,7 +53,7 @@ via_id = sub_info_table.(id_col_name);
 this_file_path = mfilename('fullpath');
 this_file_path = strcat(this_file_path,'.m');
 
-[sub,ses,bdf_file_names] = define_sub_ses_bdf(data_dir,varargin,data_file,via_id,nono_keywords_in_filename);
+[sub,ses,bdf_file_names] = define_sub_ses_bdf(data_dir, varargin, data_file, via_id, this_file_path, nono_keywords_in_filename);
 
 if exist('must_exist_files','var')
     subs_with_additional_files = search_must_exist_files(data_dir,via_id,must_exist_files);
@@ -137,13 +138,20 @@ for sesindx=1:numel(ses)
         cfg.dataset   = char(fullfile(data_dir,bdf_file_names.(ses{sesindx}){subindx}));
     end
     
+    if strcmp(run_mode,'new_BIDS')
+        cfg.dataset_description.BIDSVersion = '1.6';
+        cfg.dataset_description.Name = sprintf('%s EEG',task);
+        cfg.dataset_description.DatasetType = 'raw';
+        cfg.dataset_description.EthicsApprovals = {'The local Ethical Committee (Protocol number: H 16043682)','The Danish Data Protection Agency (IDnumber RHP-2017-003, I-suite no. 05333)'};
+    end
+    
     % specify the information for the participants.tsv file
     cfg.participants = make_participants_cfg(sub_info_table,via_id,sub_int,participant_info_include);
     
     % specify some general information that will be added to the eeg.json file
     cfg.InstitutionName             = 'Centre for Functional and Diagnostic Imagning and Research, Danish Research Center for Magnetic Resonance, Amager and Hvidovre hospital';
     cfg.InstitutionAddress          = 'Kettegard Allé 30, DK-2650 Hvidovre, Denmark';
-
+    
     % provide the mnemonic and long description of the task
     cfg.TaskName        = task;
     cfg.TaskDescription = '????';
@@ -467,7 +475,7 @@ copyfile(this_file_path, fullfile(code_dir,strcat(name,ext)), 'f')
 if strcmp(run_mode,'new_BIDS')
     %copyfile(fullfile(EEG2BIDS_tool_dir,'/BIDS_validator_EEG.py'), fullfile(code_dir,'/BIDS_validator_EEG.py'), 'f')
     copyfile(fullfile(EEG2BIDS_tool_dir,'/change_json_int_keys.py'), fullfile(code_dir,'/change_json_int_keys.py'), 'f')
-    copyfile(fullfile(EEG2BIDS_tool_dir,'/EEG_MMN_job.sh'), fullfile(code_dir,'/EEG_MMN_job.sh'), 'f')
+    copyfile(fullfile(EEG2BIDS_tool_dir,'/EEG2BIDS_job.sh'), fullfile(code_dir,'/EEG2BIDS_job.sh'), 'f')
     copyfile(fullfile(EEG2BIDS_tool_dir,'/EEG2BIDS.sh'), fullfile(code_dir,'/EEG2BIDS.sh'), 'f')
 end
 
@@ -490,6 +498,22 @@ if exist('stim_files','var')
     end
 
 end
+
+
+%% Write a readme and .bidsignore file 
+
+if strcmp(run_mode,'new_BIDS')
+    %write a readme about extra information
+    fileID = fopen(fullfile(bids_dir,'README'),'w');
+    fprintf(fileID,'Something, something');
+    fclose(fileID);
+    
+    %write .bidsignore file
+    fileID = fopen(fullfile(bids_dir,'.bidsignore'),'w');
+    fprintf(fileID,'/cluster_submissions/');
+    fclose(fileID);
+end
+
 
 %% Print an ending statement
 

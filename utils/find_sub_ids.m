@@ -36,21 +36,25 @@ for s = 1:length(ses)
     % extract file names and subject ids 
     file_struct = dir(sprintf('%s/%s',data_dir.(ses{s}),file_pattern));
     bdf_file_names.(ses{s}) = cellstr({file_struct.name});
-    sub.(ses{s}) = cell(1,length(bdf_file_names.(ses{s})));
+    nono_bdf_file_idx = contains(bdf_file_names.(ses{s}),nono_keywords_in_filename);
+    sub.(ses{s}) = cell(1,sum(not(nono_bdf_file_idx)));
     bdf_file_split = cellfun(@(x) split(x,{'subject','sub','_','-','.'}),bdf_file_names.(ses{s}),'UniformOutput',0);
-    
     for ii = 1:length(bdf_file_names.(ses{s}))
         if strcmp(search_method,'auto')
-            if ~any(contains(nono_keywords_in_filename,bdf_file_names.(ses{s}))) 
+            if ~nono_bdf_file_idx(ii)
                 numeric_idx = cell2mat(cellfun(@(x) ~isnan(str2double(x)),bdf_file_split{ii},'UniformOutput',0));
                 db_idx = ismember(bdf_file_split{ii},cellstr(num2str(via_id,'%03d')));
                 sub.(ses{s}){ii} = bdf_file_split{ii}{and(numeric_idx,db_idx)};
+            else
+                fprintf('WARNING: The subject file %s is NOT moved to the BIDS dataset for session %s. A subject directory is not made in the BIDS dataset for the subject which this file belongs to\n',bdf_file_names.(ses{s}){ii},ses{s})
             end
             
         elseif strcmp(search_method,'manual')
-            if ~any(contains(nono_keywords_in_filename,bdf_file_names.(ses{s}))) 
+            if ~nono_bdf_file_idx(ii)
                 sub_bdf_file = bdf_file_names.(ses{s}){ii};
                 sub.(ses{s}){ii} = sub_bdf_file(char_idx);
+            else
+                fprintf('WARNING: The subject file %s is NOT moved to the BIDS dataset. A subject directory is not made in the BIDS dataset for the subject which this file belongs to\n',bdf_file_names.(ses{s}){ii})
             end
         end
     end
