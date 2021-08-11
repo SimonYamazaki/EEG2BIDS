@@ -56,7 +56,8 @@ this_file_path = strcat(this_file_path,'.m');
 [sub,ses,bdf_file_names] = define_sub_ses_bdf(data_dir, varargin, data_file, via_id, this_file_path, nono_keywords_in_filename);
 
 if exist('must_exist_files','var')
-    subs_with_additional_files = search_must_exist_files(data_dir,via_id,must_exist_files);
+    [subs_with_additional_files,additional_file_names] = search_must_exist_files(data_dir,via_id,must_exist_files);
+    cmp_and_print_subs_with_file(sub,subs_with_additional_files,must_exist_files,ses)
 end
 
 finished_ses = false(1,length(ses));
@@ -65,10 +66,6 @@ ses_add = false(1,length(ses));
 
 for s = 1:length(ses)
     existing_sub = find_existing_subs(bids_dir,files_checked,ses(s));
-
-    if exist('subs_with_additional_files','var')
-        cmp_and_print_subs_with_file(sub,subs_with_additional_files,ses(s))
-    end
         
     if isempty(varargin)
         sub.(ses{s}) = sub.(ses{s})(~ismember(sub.(ses{s}),existing_sub.(ses{s})));

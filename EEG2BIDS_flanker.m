@@ -472,15 +472,6 @@ end
 % skal både duration og start stop være med i ASSR events + MMN
 % har ASSR_reg og ASSR_irreg samme events?
 
-%DCM 
-%læs manual 
-%læs tutorial 
-%spm mailing archive, peter zeidman
-%parametric emperical bayes 
-%spm example scripts 
-%se videoer 
-
-
 
 %%% noter
 %originale eprime filer skal ligge i sourcedata, men hvad med eprime-merge?
