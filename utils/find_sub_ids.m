@@ -46,7 +46,7 @@ for s = 1:length(ses)
                 db_idx = ismember(bdf_file_split{ii},cellstr(num2str(via_id,'%03d')));
                 sub.(ses{s}){ii} = bdf_file_split{ii}{and(numeric_idx,db_idx)};
             else
-                fprintf('WARNING: The subject file %s is NOT moved to the BIDS dataset for session %s. A subject directory is not made in the BIDS dataset for the subject which this file belongs to\n',bdf_file_names.(ses{s}){ii},ses{s})
+                fprintf('WARNING: The subject file %s will NOT moved to the BIDS dataset for session %s. A subject directory is not made in the BIDS dataset for the subject which this file belongs to\n',bdf_file_names.(ses{s}){ii},ses{s})
             end
             
         elseif strcmp(search_method,'manual')
@@ -54,7 +54,7 @@ for s = 1:length(ses)
                 sub_bdf_file = bdf_file_names.(ses{s}){ii};
                 sub.(ses{s}){ii} = sub_bdf_file(char_idx);
             else
-                fprintf('WARNING: The subject file %s is NOT moved to the BIDS dataset. A subject directory is not made in the BIDS dataset for the subject which this file belongs to\n',bdf_file_names.(ses{s}){ii})
+                fprintf('WARNING: The subject file %s will NOT moved to the BIDS dataset. A subject directory is not made in the BIDS dataset for the subject which this file belongs to\n',bdf_file_names.(ses{s}){ii})
             end
         end
     end

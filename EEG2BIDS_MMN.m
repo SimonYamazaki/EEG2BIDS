@@ -64,7 +64,7 @@ ses_run = false(1,length(ses));
 ses_add = false(1,length(ses));
 
 for s = 1:length(ses)
-    existing_sub.(ses{s}) = find_existing_subs(bids_dir,files_checked,ses(s));
+    existing_sub = find_existing_subs(bids_dir,files_checked,ses(s));
 
     if exist('subs_with_additional_files','var')
         cmp_and_print_subs_with_file(sub,subs_with_additional_files,ses(s))
