@@ -17,10 +17,12 @@ If the ```EEG2BIDS_*YOUR-TASK*.m``` file is made in a similar manner to the exam
 bash EEG2BIDS.sh --bids_dir /path/to/bids_dir --script name_of_script_without_matlab_extension --subject 001 --session via11
 ```
 By default the output of the BIDS directory creation is put into a .txt file located in the ```/cluster_submission``` directory in the BIDS directory. The name of this output file follows the following scheme: 
-```slurm-SLURM_ID-YY-MM-DDT-HH:MM:SS.txt
+```
+slurm-SLURM_ID-YY-MM-DDT-HH:MM:SS.txt
 ```
 If a single subject is run the subject ID is appended as so:
-```slurm-SLURM_ID-YY-MM-DDT-HH:MM:SS-SUBJECT_ID.txt
+```
+slurm-SLURM_ID-YY-MM-DDT-HH:MM:SS-SUBJECT_ID.txt
 ```
 
 (4). If any source data or derivative data should be added to the BIDS directory make a ```EEG2BIDS_*YOUR-TASK*_derivatives.m``` or ```EEG2BIDS_*YOUR-TASK*_sourcedata.m``` file.
