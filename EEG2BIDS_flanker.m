@@ -438,7 +438,7 @@ end
 % DO NOW 
 % lav funktioner som kan genbruges - mangler nok kun electrodes - vent til der vides hvordan det skal struktureres
 % samle warnings et bestemt sted i .out filen, så man nemmere kan se det for hele datasettet i stedet for at skulle lede det hele igennem?
-% make it optional to parse data_dir to EEG2BIDS.sh - parse bids_dir to matlab
+% make it optional to parse data_dir to EEG2BIDS.sh
 % lav liste med ting der skal udfyldes - aka alle ????
 % make comments in scripts
 

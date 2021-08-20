@@ -48,7 +48,7 @@ set -- "${POSITIONAL[@]}" # restore positional parameters
 
 if [[ -z "${sess}" && -z "${subj}" ]]; then
 echo "Running BIDS dataset without any specific subject or session"
-/mnt/depot64/matlab/R2020a/bin/matlab -nodesktop -nojvm -nosplash -r "${script2exe}(${BIDS_dir})"
+/mnt/depot64/matlab/R2020a/bin/matlab -nodesktop -nojvm -nosplash -r "${script2exe}('${BIDS_dir}')"
 source $HOME/anaconda3/bin/activate
 python change_json_int_keys.py
 echo
@@ -60,7 +60,7 @@ module load nodejs
 elif [[ -z "${subj}" || -z "${sess}" ]];
 then
 echo "Running BIDS dataset for subject "${subj}" but without any session"
-/mnt/depot64/matlab/R2020a/bin/matlab -nodesktop -nojvm -nosplash -r "${script2exe}(${BIDS_dir},${subj})"
+/mnt/depot64/matlab/R2020a/bin/matlab -nodesktop -nojvm -nosplash -r "${script2exe}('${BIDS_dir}',${subj})"
 source $HOME/anaconda3/bin/activate
 python change_json_int_keys.py
 echo
@@ -71,7 +71,7 @@ module load nodejs
 
 else
 echo "Running BIDS dataset for subject "${subj}" in session "${sess}""
-/mnt/depot64/matlab/R2020a/bin/matlab -nodesktop -nojvm -nosplash -r "${script2exe}(${BIDS_dir},${subj},${sess})"
+/mnt/depot64/matlab/R2020a/bin/matlab -nodesktop -nojvm -nosplash -r "${script2exe}('${BIDS_dir}',${subj},${sess})"
 source $HOME/anaconda3/bin/activate
 python change_json_int_keys.py
 echo
