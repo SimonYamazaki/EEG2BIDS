@@ -27,4 +27,4 @@ slurm-SLURM_JOB_ID-YY-MM-DDT-HH:MM:SS-SUBJECT_ID.txt
 
 (4). If any source data or derivative data should be added to the BIDS directory make a ```EEG2BIDS_*YOUR-TASK*_derivatives.m``` or ```EEG2BIDS_*YOUR-TASK*_sourcedata.m``` file.
 
-If nothing is outputted from your matlab script in the .out file, debug by running the matlab script isolated in matlab. E.g. run your function in the matlab command window without input arguments ```EEG2BIDS_flanker()``` or with input arguments ```EEG2BIDS_flanker("009","via11")```
+If nothing is outputted from your matlab script in the .out file, debug by running the matlab script isolated in matlab. E.g. run your function in the matlab command window without any specific subject ```EEG2BIDS_flanker('/path/to/bids_dir')``` or for a specific subject ```EEG2BIDS_flanker('/path/to/bids_dir',"009","via11")```

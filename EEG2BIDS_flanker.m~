@@ -436,11 +436,29 @@ end
 %% NOTES
 
 % DO NOW 
-% lav funktioner som kan genbruges - mangler nok kun electrodes - vent til der vides hvordan det skal struktureres
 % samle warnings et bestemt sted i .out filen, så man nemmere kan se det for hele datasettet i stedet for at skulle lede det hele igennem?
-% make it optional to pass data_dir to EEG2BIDS.sh
-% ASSR_irreg
-% lav liste med ting der skal udfyldes
+% make it optional to parse data_dir to EEG2BIDS.sh
+% lav liste med ting der skal udfyldes - aka alle ???? - send dem løbende som noget der skal udfyldes 
+% make comments in scripts
+% kan der ligger mere end én .bdf fil i /eeg mappen?
+% kan man ligge ASSR reg og ASSR irreg sammen? 
+% kan man ligge flere tasks sammen i et bids_dir? 
+
+%electrodes, hvordan skal det struktureres? - fjern dem 
+%rækkefølge af allerede eksisterende events fra bdf, + hvilke kolonner skal udfyldes
+%     -skal de originale kolonner også med? - originale skal med, og de skal ligge øverst
+% hvad skal der gøres med de filer, som har 2 datasæt - hvordan har du analyseret det? 
+%       - fint at de bliver fjernet med nono-keyword og antal events? - JA
+%       - hvis tilføjes, skal der ligges en readme eller lign? - kunen man godt
+%       - split filerne op hvis muligt med en funktion
+% Flanker træningsdata i /beh mappe? - det må godt komme med
+% skal både duration og start stop være med i ASSR events + MMN  - kun duration og onset. Onset for stimuli ikke epoch
+
+
+% hvor ligger selve stim lydene? stim file column i events.tsv - melissa finder dem 
+% scripts brugt til at lave dataset i /code - triggers scripts? - melissa finder den
+% hvilken type channels er de external? status channel i channels.tsv??? - melissa undersøger
+
 
 % TIL SIDST
 % lav liste med ting der skal udfyldes i json filerne  
@@ -450,51 +468,36 @@ end
 %    - opgiv gentofte hospital som kontakt for mere info i forhold til participants.tsv
 %    - hvilken type channels er de external?
 
-%SPG
-%placering af CSM og DRL
-%electrodes, hvordan skal det struktureres? 
-%rækkefølge af allerede eksisterende events fra bdf, + hvilke kolonner skal udfyldes
-%     -skal de originale kolonner også med?
-% conditionlabels som text eller som tal i events.tsv filen - skal de tilføjede events være "STATUS"?
-% trigger_delay file fra MMM_events.txt, hvad er det? 
-% hvor ligger selve stim lydene? -skal puttes i stim directory - stim file column i events.tsv
-% readme der ligger ved /mnt/projects/VIA11/EEG/Data/###_Flanker
-% hvad skal der gøres med de filer, som har 2 datasæt - hvordan har du analyseret det? 
-%       - fint at de bliver fjernet med nono-keyword og antal events? 
-%       - hvis tilføjes, skal der ligges en readme eller lign?
-% Flanker træningsdata i /beh mappe?
-% scripts brugt til at lave dataset i /code - triggers scripts?
-% hvilken type channels er de external? status channel i channels.tsv???
-% hvor meget skal i task instructions fra word filen?
-% skal trl2(1,3)=-fs; med i ASSR events
-% skal både duration og start stop være med i ASSR events + MMN
-% har ASSR_reg og ASSR_irreg samme events?
-
-%DCM 
-%læs manual 
-%læs tutorial 
-%spm mailing archive, peter zeidman
-%parametric emperical bayes 
-%spm example scripts 
-%se videoer 
-
 
 
 %%% noter
 %originale eprime filer skal ligge i sourcedata, men hvad med eprime-merge?
 %Derivatives - hvad med alle de andre .mat filer? især 47conditions.mat filer
-%make electrodes.tsv file based on coordinates from https://www.biosemi.com/headcap.htm
-%make a coordinate system file for the electrodes 
 %CHANGES file, se https://github.com/bids-standard/bids-examples/blob/master/eeg_matchingpennies/code/format_v016_to_v020.py
 %ft_read_sens til electroder? 
 % det vides ikke hvordan Beh4EEG.mat er lavet, men datanalysen begyndte FØR alt data var indsamlet, så det giver mening at e-merge tabellen for alle subjects ikke findes
 %to events i ASSR_reg, start - slut 
 %load_convert.m for MMM - vidste ikke helt hvilket der blev brugt, da analysen stadig er i gang
-%sende artikel så jeg kan læse - har modtaget for ASSR, ikke udgivet for MMM
-%hvad er epoching 
+%sende artikel så jeg kan læse - har modtaget for ASSR, ikke udgivet for MMM 
 %trials i ASSR defineret i down_epoch_baseline_threshold.m linje 39-49, JA
 % channels.mat i ASSR_reg data mappen? - er bare channel labels A1, A2 ...
-
+%placering af CSM og DRL - ligegyldigt 
+%electrodes, hvordan skal det struktureres? - fjern dem 
+%rækkefølge af allerede eksisterende events fra bdf, + hvilke kolonner skal udfyldes
+%     -skal de originale kolonner også med? - originale skal med, og de skal ligge øverst
+% conditionlabels som text eller som tal i events.tsv filen - text er fint 
+% tilføjede events være "STATUS"? - JA
+% trigger_delay file fra MMM_events.txt, hvad er det? - skal ikke med, den info ligger i de 37 mns 
+% readme der ligger ved /mnt/projects/VIA11/EEG/Data/###_Flanker - skal ikke med
+% hvad skal der gøres med de filer, som har 2 datasæt - hvordan har du analyseret det? 
+%       - fint at de bliver fjernet med nono-keyword og antal events? - JA
+%       - hvis tilføjes, skal der ligges en readme eller lign? - kunen man godt
+%       - split filerne op hvis muligt med en funktion
+% Flanker træningsdata i /beh mappe? - det må godt komme med
+% hvor meget skal i task instructions fra word filen? -bare selv tilføj noget så det giver mening 
+% skal trl2(1,3)=-fs; med i ASSR events - NEJ
+% skal både duration og start stop være med i ASSR events + MMN  - kun duration og onset. Onset for stimuli ikke epoch
+% har ASSR_reg og ASSR_irreg samme events? - JA 
 
 %%
 %load('/mnt/projects/VIA11/EEG/Anna/Flanker/Input_behavdata_Excel/Flanker_behav_Eprime_output/eegFlanker_47conditions_003.mat');

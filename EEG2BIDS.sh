@@ -23,7 +23,7 @@ while [[ $# -gt 0 ]]; do
       shift # past value
       ;;
     -ses|--session)
-      ses="$2"
+      sess="$2"
       shift # past argument
       shift # past value
       ;;
