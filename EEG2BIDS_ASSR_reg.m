@@ -10,8 +10,10 @@ addpath('/home/simonyj/EEG2BIDS/utils/')
 
 data_dir.via11 = '/home/simonyj/EEG_ASSR_reg';
 data_dir.via15 = '/home/simonyj/EEG_ASSR_reg';
-bids_dir = '/home/simonyj/EEG_BIDS_ASSR_reg';
+bids_dir = varargin{1};
+%bids_dir = '/home/simonyj/EEG_BIDS_ASSR_reg';
 EEG2BIDS_tool_dir = '/home/simonyj/EEG2BIDS';
+
 %task Definition: Each task has a unique label that MUST only consist of letters and/or numbers (other characters, including spaces and underscores, are not allowed).
 task = 'ASSRreg';
 
@@ -58,7 +60,6 @@ this_file_path = strcat(this_file_path,'.m');
 if exist('must_exist_files','var')
     [subs_with_additional_files,additional_file_names] = search_must_exist_files(data_dir,via_id,must_exist_files);
     cmp_and_print_subs_with_file(sub,subs_with_additional_files,must_exist_files,ses)
-
 end
 
 finished_ses = false(1,length(ses));
@@ -68,7 +69,7 @@ ses_add = false(1,length(ses));
 for s = 1:length(ses)
     existing_sub = find_existing_subs(bids_dir,files_checked,ses(s));
         
-    if isempty(varargin)
+    if length(varargin)==1
         sub.(ses{s}) = sub.(ses{s})(~ismember(sub.(ses{s}),existing_sub.(ses{s})));
     
         finished_ses(s) = isempty(sub.(ses{s})) && ~isempty(existing_sub.(ses{s}));

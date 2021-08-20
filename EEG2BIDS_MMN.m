@@ -10,8 +10,10 @@ addpath('/home/simonyj/EEG2BIDS/utils/')
 
 data_dir.via11 = '/home/simonyj/EEG_MMN';
 data_dir.via15 = '/home/simonyj/EEG_MMN';
-bids_dir = '/home/simonyj/EEG_BIDS_MMN';
+bids_dir = varargin{1};
+%bids_dir = '/home/simonyj/EEG_BIDS_MMN';
 EEG2BIDS_tool_dir = '/home/simonyj/EEG2BIDS';
+
 %task Definition: Each task has a unique label that MUST only consist of letters and/or numbers (other characters, including spaces and underscores, are not allowed).
 task = 'MMN';
 
@@ -67,7 +69,7 @@ ses_add = false(1,length(ses));
 for s = 1:length(ses)
     existing_sub = find_existing_subs(bids_dir,files_checked,ses(s));
         
-    if isempty(varargin)
+    if length(varargin)==1
         sub.(ses{s}) = sub.(ses{s})(~ismember(sub.(ses{s}),existing_sub.(ses{s})));
     
         finished_ses(s) = isempty(sub.(ses{s})) && ~isempty(existing_sub.(ses{s}));

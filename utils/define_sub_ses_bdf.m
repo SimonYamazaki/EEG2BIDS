@@ -17,7 +17,7 @@ if ismember('method',char_arguments)
     char_idx = varargin{end};
 end
 
-if length(vars_input) == 1
+if length(vars_input) == 2
     if isstruct(data_dir)
         n_ses = length(fieldnames(data_dir));
         assert(n_ses==1,sprintf('No session is specified, however, the script %s has %i session path(s)\n',this_file_path,n_ses))
@@ -28,7 +28,7 @@ if length(vars_input) == 1
         fprintf('Only processing subject %s\n',sub.(ses{1}))
     end
     
-elseif length(vars_input) == 2
+elseif length(vars_input) == 3
     ses = {char(vars_input{2})};
     sub.(ses{1}) = vars_input{1};
     bdf_file_names.(ses{1}) = {strrep(data_file,'*',sub.(ses{1}))};
