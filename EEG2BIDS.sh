@@ -64,8 +64,8 @@ echo "Running BIDS dataset for subject "${subj}" but without any session"
 sbatch --output="${BIDS_dir}/cluster_submissions/slurm-%j-${ts}-${subj}.txt" "EEG2BIDS_job.sh" --bids_dir ${BIDS_dir} --datetime ${ts} --subject ${subj} --script ${script2exe}
 
 else
-echo "Running BIDS dataset for subject "${subj}" in session "${sess}""
-sbatch --output="${BIDS_dir}/cluster_submissions/slurm-%j-${ts}-${subj}-${ses}.txt" "EEG2BIDS_job.sh" --bids_dir ${BIDS_dir} --datetime ${ts} --subject ${subj} --session ${ses} --script ${script2exe}
+echo "Running BIDS dataset for subject "${subj}" in sion "${sess}""
+sbatch --output="${BIDS_dir}/cluster_submissions/slurm-%j-${ts}-${subj}-${sess}.txt" "EEG2BIDS_job.sh" --bids_dir ${BIDS_dir} --datetime ${ts} --subject ${subj} --session ${sess} --script ${script2exe}
 fi
 
 

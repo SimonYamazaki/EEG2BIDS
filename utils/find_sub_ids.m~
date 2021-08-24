@@ -29,21 +29,22 @@ if isstruct(data_dir)
     ses = fieldnames(data_dir);
     data_dir_ses = data_dir;
     file_patterns_ses = file_patterns;
-    assert(isstruct(file_patterns) && isequal(fieldnames(file_patterns),ses),'The same sessions were not specified for the data_dir and data_file. Sessions must be identical.\n');
+    assert(isstruct(file_patterns) && isequal(fieldnames(file_patterns),ses),'The same sessions were not specified for the data_dir and data_file. Sessions must be identical.');
     
 elseif ischar(data_dir) || isstring(data_dir)
-    assert(ischar(file_patterns) || isstring(file_patterns),'If no sessions are defined for the data_dir, the file_patterns can not have sessions.\n');
+    assert(ischar(file_patterns) || isstring(file_patterns),'If no sessions are defined for the data_dir, the file_patterns can not have sessions.');
     ses = {'None'};
     data_dir_ses.(ses{1}) = data_dir;
     file_patterns_ses.(ses{1}) = file_patterns;
 else
-    fprintf('data_dir must be a character array or string, or a struct with field names corresponding to sessions.\n')
+    fprintf('data_dir must be a character array or string, or a struct with field names corresponding to sessions.')
 end
 
 for s = 1:length(ses)
     % extract file names and subject ids 
     file_struct = dir(sprintf('%s/%s',data_dir_ses.(ses{s}),file_patterns_ses.(ses{s})));
-    assert(~isempty(file_struct),'No files matching the pattern %s found in %s',file_patterns_ses.(ses{s}),data_dir_ses.(ses{s}))
+    ~file_struct
+    %assert(file_struct)
     
     bdf_file_names.(ses{s}) = cellstr({file_struct.name});
     nono_bdf_file_idx = contains(bdf_file_names.(ses{s}),nono_keywords_in_filename);

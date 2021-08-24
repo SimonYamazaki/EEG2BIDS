@@ -34,9 +34,10 @@ if length(vars_input) == 2
         sub_idx = ismember(sub.(ses{1}),vars_input{2});
         new_bdf_file_name = bdf_file_names.(ses{1})(sub_idx);
         clear sub bdf_file_names
-        sub.(ses{1}) = vars_input(2);
+        sub.(ses{1}) = vars_input{2);
+        sub.(ses{1})
         bdf_file_names.(ses{1}) = new_bdf_file_name;
-        fprintf('Only processing subject %s\n',sub.(ses{1}){1})
+        fprintf('Only processing subject %s\n',sub.(ses{1}))
     end
     
 elseif length(vars_input) == 3

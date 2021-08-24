@@ -12,7 +12,7 @@ These files must follow the exact format of the examples in this repository to b
 ```
 bash EEG2BIDS.sh --bids_dir /path/to/bids_dir --script name_of_script_without_matlab_extension
 ```
-If the ```EEG2BIDS_*YOUR-TASK*.m``` file is made in a similar manner to the examples given in this repository, single subjects can be run by specifying a subject and a session argument. Example:
+If the ```EEG2BIDS_*YOUR-TASK*.m``` file is made in a similar manner to the examples given in this repository, single subjects can be run by specifying a subject and a session argument. The bids_dir will be created if it does not exist. Example:
 ```
 bash EEG2BIDS.sh --bids_dir /path/to/bids_dir --script name_of_script_without_matlab_extension --subject 001 --session via11
 ```
