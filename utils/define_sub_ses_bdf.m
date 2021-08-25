@@ -6,9 +6,8 @@ data_dir = varargin{1};
 vars_input = varargin{2};
 data_file = varargin{3};
 via_id = varargin{4};
-this_file_path = varargin{5};
-if nargin >= 6
-    nono_keywords_in_filename = varargin{6};
+if nargin >= 5
+    nono_keywords_in_filename = varargin{5};
 end
 
 char_arguments = varargin(cellfun(@(c) ischar(c), varargin));
@@ -28,7 +27,7 @@ end
 if length(vars_input) == 2
     if isstruct(data_dir)
         n_ses = length(fieldnames(data_dir));
-        assert(n_ses==1,sprintf('No session is specified, however, the script %s has %i session path(s)\n',this_file_path,n_ses))
+        assert(n_ses==1,sprintf('No session is specified, however, the executed script has %i session path(s)\n',n_ses))
     else
         ses = {'None'};
         sub_idx = ismember(sub.(ses{1}),vars_input{2});

@@ -1,7 +1,119 @@
+%%%%%% EVENTS FROM ASSR_reg
+
+
+%search pattern for data files
+data_file.via11 = '*_ASSR_reg*.bdf';
+data_file.via15 = '*_ASSR_reg*.bdf';
+nono_keywords_in_filename = {'Flanker','irreg','MMN'};
+
+%search pattern for other files that must exist along side the data file
+%must_exist_files = {'*_triggers.mat'}; %currently searches data_dir for these files
+
+%file to check for to determine existing subjects
+files_checked = {'eeg.bdf','eeg.json','events.tsv','channels.tsv'};
+
+%only include these participant info variables
+participant_info_include = {'MRI_age_v11', 'Sex_child_v11','HighRiskStatus_v11'};
+
+% parse a subject info table from databse for participant information
+sub_info_table_path = '/mnt/projects/VIA11/database/VIA11_allkey_160621.csv';
+id_col_name = 'famlbnr';
+
+%path to stimulation files to include in /stimuli in bids root dir
+stim_files = {'/home/simonyj/EEG_ASSR_reg/click_40_regular.wav'};
+
+%txt file paths to be read
+event_txt_file = fullfile(data_dir.via11,'ASSR_events.txt');
+instructions_txt = fullfile(data_dir.via11,'ASSR_reg_instructions.txt');
+participants_var_txt = fullfile(data_dir.via11,'participants_variables.txt');
+
+
+
+
+    %%%%%%%%  EVENTS %%%%%%%%
+    event_struct = ft_read_event(cfg.dataset);
+    
+    %check that the .bdf file only contains the expected amount of events
+    if exist('trig_start_value','var')
+        if sum([event_struct.value]==trig_start_value)~=n_trig_start
+            fprintf('Subject %s has more trigger start events than expected. Check whether the .bdf file includes tasks other than %s.',cfg.sub,task)
+            %fprintf('WARNING: Not including subject %s in the bids structure as the .bdf file includes more events than expected',cfg.sub,task)
+        end
+    end
+    
+    fs = cfg.hdr.Fs;  %e.g. 4096
+    delay = 38;
+    
+    bdf_event_samples = [event_struct.sample];   
+    conditionlabels = cell(1,120);
+    conditionlabels{1} = 'click';
+    trl2(1,1)=round(bdf_event_samples(1)+(38/1000)*fs);
+    trl2(1,2)=round(bdf_event_samples(1)+1000+(38/1000)*fs); %the first two terms in this definition is arbitrary
+    
+    for k = 2:120
+        trl2(k,1)=round(trl2(k-1,1)+3*fs);
+        trl2(k,2)=round(trl2(k-1,2)+3*fs);
+        conditionlabels{k}='click';
+    end
+    
+    bdf_event_table = struct2table(event_struct); 
+    type = repmat({'STATUS'},length(conditionlabels),1) ;
+    value = cell(length(conditionlabels),1);
+    offset = cell(length(conditionlabels),1); %keep this variable
+    duration = num2cell(ones(length(conditionlabels),1));
+    sample = trl2(:,1);
+    
+    generated_event_table = table(type,sample,value,offset,duration);
+    event_table = [bdf_event_table;generated_event_table];
+
+    event_table.stim_file = [cell(length(event_struct),1); repmat(bids_stim_file_name(1),length(conditionlabels),1)];
+    event_table.delay = ones(length(event_struct)+length(conditionlabels),1)*delay/1000;
+    event_table.conditionlabel = [cell(length(event_struct),1); conditionlabels(:)];
+
+    cfg.events = table2struct(event_table);
+    cfg.keep_events_order = true; %should the events be sorted according to sample or should it keep the order of the table?
+    
+    data2bids(cfg);
+
+
 
 %% %%%%%%%%%%%%%%%%% BEHAV  %%%%%%%%%%%%%%%%%%%%%%
 
+behav_path = '/mnt/projects/VIA11/EEG/Anna/Flanker/Input_behavdata_Excel/Flankerbehav090119.xls';
+behav_col_names_path = '/mnt/projects/VIA11/EEG/Data/Flanker_47condition/EEG_Flanker.txt';
 
+%behav data xlsx file
+behav_table = readtable(behav_path);
+nameless_cols = check_nameless_columns(behav_table,behav_path);
+
+%get column names from elsewhere 
+clear behav_col_names
+behav_col_names = readtable(behav_col_names_path).Properties.VariableNames;
+assert(length(behav_col_names)==width(behav_table),'The number of column names does not match the number of columns in table');
+
+if ~isempty(nameless_cols) && isempty(behav_col_names)
+    fprintf('In %s table the following columns are nameless ',behav_path)
+    fprintf('%i, ',nameless_cols)
+    fprintf('Get column names for behavioural data')
+elseif ~isempty(nameless_cols) && ~isempty(behav_col_names)
+    fprintf('Successfully added behavioural data column names')
+end
+
+
+%%% to go into the data2bids loop
+
+    % specify the information for the participants.tsv file
+    for col = 1:total_cols
+        if contains(col_names{col},participant_info_include)
+            cfg.participants.(col_names{col}) = sub_info_table{via_id==sub_int,col};
+        elseif contains(col_names{col},participant_info_include) && isdatetime(sub_info_table{via_id==sub_int,col}) && isnat(sub_info_table{via_id==sub_int,col})
+            cfg.participants.(col_names{col}) = 'n/a';
+        elseif contains(col_names{col},participant_info_include) && isdatetime(sub_info_table{via_id==sub_int,col})
+            cfg.participants.(col_names{col}) = strrep(char(sub_info_table{via_id==sub_int,col}),'/','-');
+        elseif contains(col_names{col},participant_info_include) && isnumeric(sub_info_table{via_id==sub_int,col}) && isnan(sub_info_table{via_id==sub_int,col})
+            cfg.participants.(col_names{col}) = 'n/a';
+        end
+    end
 
 
 

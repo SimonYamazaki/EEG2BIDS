@@ -21,7 +21,7 @@ for s = 1:length(ses)
         elseif any(not(ismember(subs_with_file,sub.(ses{s}))))
             fprintf('Subject %s has %s file but are missing data file in session %s\n',subs_with_file{~ismember(subs_with_file,sub.(ses{s}))},mefn,ses{s} )
         else
-            fprintf('Did not find match between subjects with data files and subjects with %s files. Check if file search pattern is correct for session %s\n',mefn,ses{s})
+            fprintf('WARNING: Did not find match between subjects with data files and subjects with %s files. Check if file search pattern is correct for session %s\n',mefn,ses{s})
         end
     end
 end

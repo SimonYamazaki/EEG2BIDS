@@ -330,13 +330,11 @@ end
 % samle warnings et bestemt sted i .out filen, så man nemmere kan se det for hele datasettet i stedet for at skulle lede det hele igennem?
 % make it optional to parse data_dir to EEG2BIDS.sh
 % lav liste med ting der skal udfyldes - aka alle ???? - send dem løbende som noget der skal udfyldes 
-% make comments in scripts
+% make comments in scripts - MMN done 
 % lav en EEG2BIDS_template.m - når EEG2BIDS_MMN er færdig med ændringer
 %       - fyld behav data i med column name check 
 %       - lav electrodes filer
 %lav flanker og ASSR_irreg scripts, når bdf file split er lavet
-%lav data_file til et struct så filerne kan hedde noget anderledes i hver
-%session - tage højde for dette i find_sub_ids.m
 
 
 % ÆNDRINGER
@@ -347,7 +345,7 @@ end
 
 % hvor ligger selve stim lydene? stim file column i events.tsv - melissa finder dem 
 % scripts brugt til at lave dataset i /code - triggers scripts? - melissa finder den
-
+% external channels type 
 
 % LISTEN
 % lav liste med ting der skal udfyldes i json filerne  

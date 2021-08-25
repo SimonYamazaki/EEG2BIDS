@@ -21,7 +21,7 @@ elseif ismember('method',varargin) && nargin == 7
     search_method = varargin{find(strcmp(varargin,'method')==1)+1};
     char_idx = varargin{end};
 else
-    fprintf('Missing arguments to find_sub_ids function')
+    fprintf('WARNING: Missing arguments to find_sub_ids function.')
 end
 
 
@@ -37,7 +37,7 @@ elseif ischar(data_dir) || isstring(data_dir)
     data_dir_ses.(ses{1}) = data_dir;
     file_patterns_ses.(ses{1}) = file_patterns;
 else
-    fprintf('data_dir must be a character array or string, or a struct with field names corresponding to sessions.\n')
+    fprintf('WARNING: data_dir must be a character array or string, or a struct with field names corresponding to sessions.\n')
 end
 
 for s = 1:length(ses)
