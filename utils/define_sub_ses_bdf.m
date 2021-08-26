@@ -3,9 +3,9 @@ function [sub,ses,bdf_file_names] = define_sub_ses_bdf(varargin)
 %   Detailed explanation goes here
 
 data_dir = varargin{1};
-vars_input = varargin{2};
-data_file = varargin{3};
-via_id = varargin{4};
+data_file = varargin{2};
+via_id = varargin{3};
+vars_input = varargin{4};
 if nargin >= 5
     nono_keywords_in_filename = varargin{5};
 end
@@ -13,7 +13,7 @@ end
 char_arguments = varargin(cellfun(@(c) ischar(c), varargin));
 if ismember('method',char_arguments)
     search_method = varargin{find(strcmp(varargin,'method')==1)+1};
-    char_idx = varargin{end};
+    char_idx = varargin{find(strcmp(varargin,'method')==1)+2};
 end
 
 

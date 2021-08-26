@@ -40,10 +40,14 @@ data_file.via15 = '*_MMN.bdf';
 nono_keywords_in_filename = {'Flanker','ASSR'};
 
 %search pattern for other files that must exist along side the data file
-must_exist_files = {'*_triggers.mat'}; %currently searches data_dir for these files
+%follows the same structure as data_dir with respect to sessions
+%field names must be identical to data_dir field names
+must_exist_files.via11 = {'*_triggers.mat'}; %currently searches data_dir for these files
+must_exist_files.via15 = {'*_triggers.mat'}; %currently searches data_dir for these files
 
 %files to check for to determine existing subjects in BIDS directory
-files_checked = {'eeg.bdf','eeg.json','events.tsv','channels.tsv'};
+files_checked.via11 = {'*_eeg.bdf','*_eeg.json','*_events.tsv','*_channels.tsv'};
+files_checked.via15 = {'*_eeg.bdf','*_eeg.json','*_events.tsv','*_channels.tsv'};
 
 % parse a subject info table from database for participant information.
 % info goes into participants.tsv
@@ -75,11 +79,12 @@ this_file_path = mfilename('fullpath');
 this_file_path = strcat(this_file_path,'.m');
 
 %define sessions, subjects and their data_files (in this case the data_files are bdf files)
-[sub,ses,bdf_file_names] = define_sub_ses_bdf(data_dir, varargin, data_file, via_id, nono_keywords_in_filename);
+%varargin is the arguments that was parsed to this script, e.i. bids_dir and potentially single subject id and session
+[sub,ses,bdf_file_names] = define_sub_ses_bdf(data_dir, data_file, via_id, varargin, nono_keywords_in_filename);
 
 %get subjects with the additional files that was specified in the variable "must_exist_files"
 if exist('must_exist_files','var')
-    [subs_with_additional_files,additional_file_names] = search_must_exist_files(data_dir,via_id,must_exist_files);
+    [subs_with_all_files,subs_with_additional_files,additional_file_names] = search_must_exist_files(data_dir,via_id,must_exist_files);
     cmp_and_print_subs_with_file(sub,subs_with_additional_files,must_exist_files,ses) % compare the subjects to be moved to the bids_dir with the subjects that has the additional files. This function also prints the comparison.
 end
 
@@ -88,26 +93,34 @@ finished_ses = false(1,length(ses));
 ses_run = false(1,length(ses));
 ses_add = false(1,length(ses));
 
-
 for s = 1:length(ses)
     %only include subjects that has the additional_files
     if exist('must_exist_files','var')
-        exluded_subs = sub.(ses{s})(~ismember(sub.(ses{s}),subs_with_additional_files.(ses{s}))); %subjects which does not have one of the must_exist_files
-        fprintf('WARNING: Subject %s will not be included in the BIDS directory as they are missing a "must_exist_file" ',exluded_subs{:})
-        fprintf('in session %s\n',ses{s})
-        sub.(ses{s}) = sub.(ses{s})(ismember(sub.(ses{s}),subs_with_additional_files.(ses{s}))); %the exlusion of the subjects who does not have the must_exist_files
+        excluded_subs = sub.(ses{s})(~ismember(sub.(ses{s}),subs_with_all_files.(ses{s}))); %subjects which does not have one of the must_exist_files
+
+        %print warning if subjects are excluded
+        if ~isempty(excluded_subs)
+            fprintf('WARNING: Subject %s will not be included in the BIDS directory as they are missing a "must_exist_file" ',excluded_subs{:})
+            fprintf('in session %s\n',ses{s})
+            bdf_file_names.(ses{s}) = bdf_file_names.(ses{s})(~ismember(sub.(ses{s}),subs_with_all_files.(ses{s}))); %the exlusion of subjects which are already existing in the bids_dir
+            sub.(ses{s}) = sub.(ses{s})(ismember(sub.(ses{s}),subs_with_all_files.(ses{s}))); %the exlusion of the subjects who does not have the must_exist_files
+        end
     end
+    
     %find existing subjects in the bids structure by searching for files_checked
     existing_sub = find_existing_subs(bids_dir,files_checked,ses(s));
     
     if length(varargin)==1 %if only the bids_dir is parsed to this function, e.i. running this script for multiple subjects 
+        bdf_file_names.(ses{s}) = bdf_file_names.(ses{s})(~ismember(sub.(ses{s}),existing_sub.(ses{s}))); %the exlusion of subjects which are already existing in the bids_dir
         sub.(ses{s}) = sub.(ses{s})(~ismember(sub.(ses{s}),existing_sub.(ses{s}))); %the exlusion of subjects which are already existing in the bids_dir
-    
+
         finished_ses(s) = isempty(sub.(ses{s})) && ~isempty(existing_sub.(ses{s})); %the sessions that are done
         ses_run(s) = ~isempty(sub.(ses{s})) && isempty(existing_sub.(ses{s})); %the sessions that should be run/started/created
         ses_add(s) = ~isempty(sub.(ses{s})) && ~isempty(existing_sub.(ses{s})); %the existing sessions with subjects to be added to
         
-    else %running this script for a single subject
+    elseif length(varargin)>1 %running this script for a single subject
+
+        assert(~isempty(sub.(ses{s})),sprintf('A BIDS directory will not be made for subject %s. Check warnings above',varargin{2}))
         
         finished_ses(s) = false; %the sessions that are done
         ses_run(s) = ~isempty(sub.(ses{s})) && isempty(existing_sub.(ses{s})); %the sessions that should be run/started/created
@@ -115,33 +128,49 @@ for s = 1:length(ses)
     end
 end
 
+
 %only run this script if there are unfinished sessions
-assert( all(not(finished_ses)), 'All relevant subject files are moved to BIDS data structure in all sessions. Add more subject files to the data_dir or run EEG2BIDS.sh for a specific subject.')
+assert( ~all(finished_ses), 'All relevant subject files are moved to BIDS data structure in all sessions. Add more subject files to the data_dir or run EEG2BIDS.sh for a specific subject.')
 
 if any(ses_run)
-    fprintf('Creating new BIDS dataset session from subject files \n')
-    run_mode = 'new_BIDS';
-elseif any(ses_add)
-    ses_to_add = ses(ses_add);
-    for s = 1:length(ses_to_add)
-        fprintf('Moving subject %s files into BIDS data structure for session %s\n',sub.(ses_to_add{s}){:},ses_to_add{s})
+    if length(ses{ses_run})==1
+        if strcmp(ses{ses_run},'None')
+            fprintf('Creating new BIDS dataset from subject files \n')
+        end
+    else
+        fprintf('Creating new BIDS dataset session %s from subject files \n',ses{ses_run})
     end
-    run_mode = 'add_sub';
+    run_mode = 'new_BIDS';
+else
+    run_mode = 'exist_BIDS';
 end
 
-%Copy the stimulation files to /stim direcotry
-if exist('stim_files','var')
-    if strcmp(run_mode,'new_BIDS')
-        bids_stim_file_path = cell(length(stim_files),1); %prellocate cell
-        stim_dir = fullfile(bids_dir,'/stimuli'); %the stimuli dir in the bids_dir
-        if not(isfolder(stim_dir)) %only make the stimuli dir if it does not exist
-            mkdir(stim_dir)
+if any(ses_add) %sessions to add assuming that other parts of the BIDS dataset have been created successfully
+    ses_to_add = ses(ses_add);
+    for s = 1:length(ses_to_add)
+        for ss = 1:length(sub.(ses_to_add{s}))
+            fprintf('Moving subject %s files into BIDS dataset for session %s \n',sub.(ses_to_add{s}){ss},ses_to_add{s})
         end
-    
-        for sf=1:length(stim_files)
-            [folder,name,ext] = fileparts(stim_files{sf});
-            bids_stim_file_name{sf} = strcat(name,ext); %the name of the stim files 
-            bids_stim_file_path{sf} = fullfile(stim_dir,bids_stim_file_name{sf}); %the stim file paths in the bids_dir
+    end
+end
+
+
+%% Copy the stimulation files to /stim direcotry
+
+if exist('stim_files','var')
+
+    bids_stim_file_path = cell(length(stim_files),1); %prellocate cell
+    stim_dir = fullfile(bids_dir,'/stimuli'); %the stimuli dir in the bids_dir
+    if not(isfolder(stim_dir)) %only make the stimuli dir if it does not exist
+        mkdir(stim_dir)
+    end
+
+    for sf=1:length(stim_files)
+        [folder,name,ext] = fileparts(stim_files{sf});
+        bids_stim_file_name{sf} = strcat(name,ext); %the name of the stim files 
+        bids_stim_file_path{sf} = fullfile(stim_dir,bids_stim_file_name{sf}); %the stim file paths in the bids_dir
+
+        if strcmp(run_mode,'new_BIDS')
             copyfile( stim_files{sf}, bids_stim_file_path{sf}, 'f') %copy the stim files listed in the setup to the stim directory in the bids_dir
         end
     end
@@ -169,7 +198,7 @@ end
 
 for sesindx=1:numel(ses)
     for subindx=1:numel(sub.(ses{sesindx}))
-        
+    
     % initialize config struct
     cfg = [];
     cfg.method    = 'copy'; %only copy the files
@@ -287,29 +316,29 @@ for sesindx=1:numel(ses)
     %create the rest of the 1800 trials and correct for the latency between the
     %trigger and the sound
     S.trl(1,1)=timestart*fs+round((delay/1000)*fs); %-0.1*fs; %(the -0.1*fs shifts the start of the epoch to be 100ms before the sound which SPM wants)
-    S.conditionlabels{1,:} = 'std';
-    duration_vec = zeros(length(S.conditionlabels),1);
-    duration_vec(1) = 50/1000;
-    table_sf = cell(length(S.conditionlabels),1);
+    S.conditionlabels{1,1} = 'std';
+    duration_vec(1,1) = 50/1000;
+    table_sf{1,1} = bids_stim_file_name{1};
+    
     trig=round(start_samples/(44100/4096));
 
     for i = 2:length(trig)
         S.trl(i,1)=S.trl(1,1)+trig(i);
         if mmn_codes(i)==1
             S.conditionlabels{i,:}= 'std';
-            duration_vec(i) = 50/1000;
+            duration_vec(i,1) = 50/1000;
             table_sf{i} = bids_stim_file_name{1};
         elseif mmn_codes(i) ==2
             S.conditionlabels{i,:}= 'dev1';
-            duration_vec(i) = 50/1000;
+            duration_vec(i,1) = 50/1000;
             table_sf{i} = bids_stim_file_name{2};
         elseif mmn_codes(i) ==3
             S.conditionlabels{i,:}='dev2';
-            duration_vec(i) = 100/1000;
+            duration_vec(i,1) = 100/1000;
             table_sf{i} = bids_stim_file_name{3};
         elseif mmn_codes(i) ==4
             S.conditionlabels{i,:}='dev3';
-            duration_vec(i) = 100/1000;
+            duration_vec(i,1) = 100/1000;
             table_sf{i} = bids_stim_file_name{4};
         end
     end
@@ -318,7 +347,7 @@ for sesindx=1:numel(ses)
     type = repmat({'STATUS'},length(S.conditionlabels),1) ;
     value = cell(length(S.conditionlabels),1);
     offset = cell(length(S.conditionlabels),1); %keep this variable
-    duration = num2cell(duration_vec)';
+    duration = num2cell(duration_vec);
     sample = S.trl(:,1);
     
     generated_event_table = table(type,sample,value,offset,duration);
@@ -331,9 +360,9 @@ for sesindx=1:numel(ses)
     event_table.start_samples = [cell(length(event_struct),1); num2cell(start_samples')];
 
     cfg.events = table2struct(event_table);
-    cfg.keep_events_order = true; %should the events be sorted according to sample or should it keep the order?
+    cfg.keep_events_order = true; %should the events be sorted according to sample or should it keep the order in cfg.events?
 
-    
+    %make bids dataset
     data2bids(cfg);
     
     end

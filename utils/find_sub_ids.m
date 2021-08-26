@@ -2,6 +2,7 @@ function [sub,bdf_file_names] = find_sub_ids(data_dir, file_patterns, via_id, va
 %UNTITLED3 Summary of this function goes here
 %   Detailed explanation goes here
 
+
 % data_dir = varargin{1};
 % file_patterns = varargin{2};
 % via_id = varargin{3};
@@ -29,7 +30,7 @@ if isstruct(data_dir)
     ses = fieldnames(data_dir);
     data_dir_ses = data_dir;
     file_patterns_ses = file_patterns;
-    assert(isstruct(file_patterns) && isequal(fieldnames(file_patterns),ses),'The same sessions were not specified for the data_dir and data_file. Sessions must be identical.\n');
+    assert(isstruct(file_patterns) && isequal(fieldnames(file_patterns),ses),'The same sessions were not specified for the data_dir and data_file. Sessions must be identical');
     
 elseif ischar(data_dir) || isstring(data_dir)
     assert(ischar(file_patterns) || isstring(file_patterns),'If no sessions are defined for the data_dir, the file_patterns can not have sessions.\n');
@@ -56,7 +57,7 @@ for s = 1:length(ses)
                 db_idx = ismember(bdf_file_split{ii},cellstr(num2str(via_id,'%03d')));
                 sub.(ses{s}){ii} = bdf_file_split{ii}{and(numeric_idx,db_idx)};
             else
-                fprintf('WARNING: The subject file %s will NOT moved to the BIDS dataset for session %s. A subject directory is not made in the BIDS dataset for the subject which this file belongs to\n',bdf_file_names.(ses{s}){ii},ses{s})
+                fprintf('WARNING: The subject file %s will NOT moved to the BIDS dataset for session %s\n',bdf_file_names.(ses{s}){ii},ses{s})
             end
             
         elseif strcmp(search_method,'manual')

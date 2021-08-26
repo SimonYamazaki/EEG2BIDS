@@ -15,7 +15,7 @@ if nargin > 2
     for ii = 1:length(ses)
         existing_sub.(ses{ii}) = existing_sub_root;
         if isstruct(files_checked_input)
-            assert( ismember(ses(ii),fieldnames(files_checked_input)),sprintf('Session %s is not defined in the "files_checked" structure varaible',ses{ii}));
+            assert(ismember(ses{ii},fieldnames(files_checked_input),'The session to find exi')
             files_checked.(ses{ii}) = files_checked_input.(ses{ii});
         else
             files_checked.(ses{ii}) = files_checked_input;            
