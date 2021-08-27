@@ -11,8 +11,8 @@ for s = 1:length(ses)
         mefn = must_exist_file_names.(ses{s}){f};
         
         subs_with_file = subs_with_additional_files.(ses{s}).(fn);
-        if all(ismember(sub.(ses{s}),subs_with_file)) && length(sub.(ses{s}))==1
-            fprintf('Subject %s with data file also have %s files in session %s\n',sub.(ses{s}){1},mefn,ses{s})
+        if all(ismember(sub.(ses{s}),subs_with_file)) &&
+            fprintf('All subjects with data files also have %s files in session %s\n',mefn,ses{s})
         elseif all(ismember(sub.(ses{s}),subs_with_file))
             fprintf('All subjects with data files also have %s files in session %s\n',mefn,ses{s})
         elseif any(not(ismember(sub.(ses{s}),subs_with_file)))

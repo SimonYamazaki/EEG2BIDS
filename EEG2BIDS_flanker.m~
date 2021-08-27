@@ -314,14 +314,6 @@ end
 
 %% NOTES
 
-%SPG
-% hvor meget skal i task instructions fra word filen? -bare selv tilføj noget så det giver mening - skal alt det i starten med?
-% skal det så være run eller task? 
-% hvilken type channels er de external? status channel i channels.tsv - den sidste???
-% Flanker træningsdata i /beh mappe? - det må godt komme med - det er sourcedata!?
-% convertering til EDF?
-% external channels type
-
 
 % COMMENTS
 % kan der ligger mere end én .bdf fil i /eeg mappen? - ja, skal være adskilt med task eller run 
@@ -336,7 +328,12 @@ end
 %       - fyld behav data i med column name check 
 %       - lav electrodes filer
 %lav flanker og ASSR_irreg scripts, når bdf file split er lavet
-%lav ses compatible: files_checked, nono_keywords, stim_files, txt-filer
+%lav ses compatible: nono_keywords, txt-filer
+%evt lav et script til at sætte bids op og et script til at tilføje tasks?
+%skal man i terminal functionen give et data_dir i stedet for en session?
+%flere tasks - do the same for channels.json as with events.json 
+%lav en add_rows function til events.tsv - som tager ekstra kolonner +
+%navne som input og tilføjer dem til 
 
 % ÆNDRINGER
 % hvad skal der gøres med de filer, som har 2 datasæt - hvordan har du analyseret det? 
@@ -344,7 +341,6 @@ end
 %       - split filerne op hvis muligt med en funktion - kan gøres med actiview
 
 
-% hvor ligger selve stim lydene? stim file column i events.tsv - melissa finder dem 
 % scripts brugt til at lave dataset i /code - triggers scripts? - melissa finder den
 % external channels type - melissa undersøger
 
@@ -386,6 +382,9 @@ end
 % skal både duration og start stop være med i ASSR events + MMN  - kun duration og onset. Onset for stimuli ikke epoch
 % har ASSR_reg og ASSR_irreg samme events? - JA 
 % uV står under physDim i bdf header
+% Flanker træningsdata i /beh mappe? - skal ikke bruges
+% convertering til EDF? - nej 
+% skal det så være run eller task? - flere tasks 
 
 
 %% Loading things

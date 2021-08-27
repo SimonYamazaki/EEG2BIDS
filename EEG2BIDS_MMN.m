@@ -10,8 +10,10 @@ addpath('/home/simonyj/EEG2BIDS/utils/')
 %% Setup  
 
 %Specify the data directories
-%if more than one session is present data_dir should be a struct with
-%fieldnames corresponding to session names
+% - If session folder(s) should be created in the bids dataset, data_dir should
+%be a struct with the fieldnames corresponding to the session name(s)
+% - If no sessions are needed let data_dir be a character array with the
+%data_dir path
 data_dir.via11 = '/home/simonyj/EEG_MMN';
 data_dir.via15 = '/home/simonyj/EEG_MMN';
 bids_dir = varargin{1}; %bids_dir is parsed as the first input in the function 
@@ -25,10 +27,6 @@ EEG2BIDS_tool_dir = '/home/simonyj/EEG2BIDS';
 %of letters and/or numbers (other characters, including spaces and underscores, are not allowed).
 task = 'MMN';
 
-%start event value and the number of expected events with this value
-trig_start_value = 65281;
-n_trig_start = 1;
-
 %Search pattern for data files. 
 %data_file follows the same structure as data_dir with respect to sessions
 %field names must be identical to data_dir field names
@@ -39,20 +37,25 @@ data_file.via15 = '*_MMN.bdf';
 %if this keyword is found, the file will not be moved to BIDS
 nono_keywords_in_filename = {'Flanker','ASSR'};
 
-%search pattern for other files that must exist along side the data file
+%search pattern for other files that must exist along the data file
 %follows the same structure as data_dir with respect to sessions
 %field names must be identical to data_dir field names
+%note - if there are sessions without the need of must_exist_files, then
+%simply dont define the field of that session
 must_exist_files.via11 = {'*_triggers.mat'}; %currently searches data_dir for these files
 must_exist_files.via15 = {'*_triggers.mat'}; %currently searches data_dir for these files
 
 %files to check for to determine existing subjects in BIDS directory
+%follows the same structure as data_dir with respect to sessions
+%field names must be identical to data_dir field names
+%must include all the sessions defined in data_dir
 files_checked.via11 = {'*_eeg.bdf','*_eeg.json','*_events.tsv','*_channels.tsv'};
 files_checked.via15 = {'*_eeg.bdf','*_eeg.json','*_events.tsv','*_channels.tsv'};
 
 % parse a subject info table from database for participant information.
 % info goes into participants.tsv
 sub_info_table_path = '/mnt/projects/VIA11/database/VIA11_allkey_160621.csv';
-id_col_name = 'famlbnr';
+id_col_name = 'famlbnr'; %the column name which represents subject IDs in sub_info_table
 
 %only include these participant info variables
 %if no variables are listed all variables are added to the participants.tsv
@@ -61,6 +64,18 @@ participant_info_include = {'MRI_age_v11', 'Sex_child_v11','HighRiskStatus_v11'}
 %path to stimulation files to include in /stimuli directory in bids_dir
 stim_files = {'/home/simonyj/EEG_MMN/std.wav','/home/simonyj/EEG_MMN/dev1.wav',...
             '/home/simonyj/EEG_MMN/dev2.wav','/home/simonyj/EEG_MMN/dev3.wav'};
+
+%Whether to write a scans.tsv file
+include_scans_tsv = false;
+
+%start event value and the number of expected events with this value
+trig_start_value = 65281;
+n_trig_start = 1;
+
+%Should events.tsv and events.json be loacted in bids_dir or subject folders
+%note - if in bids_dir, according to the inheritance principle, the event
+%files are general for all subjects and sessions
+events_in_sub_dir = false;
 
 %txt file paths to be read
 event_txt_file = fullfile(data_dir.via11,'MMN_events.txt'); % txt file with information about events but not the events itself. This includes trigger values or notes about the events in general. Should have a specific format, check other events.txt
@@ -158,20 +173,30 @@ end
 %% Copy the stimulation files to /stim direcotry
 
 if exist('stim_files','var')
-
-    bids_stim_file_path = cell(length(stim_files),1); %prellocate cell
-    stim_dir = fullfile(bids_dir,'/stimuli'); %the stimuli dir in the bids_dir
-    if not(isfolder(stim_dir)) %only make the stimuli dir if it does not exist
-        mkdir(stim_dir)
+    
+    if isstruct(stim_files)
+        fn = fieldnames(stim_files);
+        stim_files_struct = stim_files;
+    else
+        fn = {'None'};
+        stim_files_struct.(fn{1}) = stim_files;
     end
+    
+    for ss = 1:length(fn)
+        bids_stim_file_path = cell(length(stim_files_struct.(fn{ss})),1); %prellocate cell
+        stim_dir = fullfile(bids_dir,'/stimuli'); %the stimuli dir in the bids_dir
+        if not(isfolder(stim_dir)) %only make the stimuli dir if it does not exist
+            mkdir(stim_dir)
+        end
 
-    for sf=1:length(stim_files)
-        [folder,name,ext] = fileparts(stim_files{sf});
-        bids_stim_file_name{sf} = strcat(name,ext); %the name of the stim files 
-        bids_stim_file_path{sf} = fullfile(stim_dir,bids_stim_file_name{sf}); %the stim file paths in the bids_dir
+        for sf=1:length(stim_files_struct.(fn{ss}))
+            [folder,name,ext] = fileparts(stim_files_struct.(fn{ss}){sf});
+            bids_stim_file_name{sf} = strcat(name,ext); %the name of the stim files 
+            bids_stim_file_path{sf} = fullfile(stim_dir,bids_stim_file_name{sf}); %the stim file paths in the bids_dir
 
-        if strcmp(run_mode,'new_BIDS')
-            copyfile( stim_files{sf}, bids_stim_file_path{sf}, 'f') %copy the stim files listed in the setup to the stim directory in the bids_dir
+            if strcmp(run_mode,'new_BIDS')
+                copyfile( stim_files_struct.(fn{ss}){sf}, bids_stim_file_path{sf}, 'f') %copy the stim files listed in the setup to the stim directory in the bids_dir
+            end
         end
     end
 end
@@ -193,6 +218,7 @@ if exist('instructions_txt','var')
     InstructionsC = read_txt(instructions_txt);
 end
 
+write_events = true;
 
 %loop over sessions and subjects to make bids_dir for
 
@@ -218,7 +244,7 @@ for sesindx=1:numel(ses)
     sub_int       = str2num(cfg.sub);
     
     %specify that no scans.tsv file is needed for this dataset
-    cfg.include_scans = false;
+    cfg.include_scans = include_scans_tsv;
     
     % define data file for current subject
     if isstruct(data_dir)
@@ -279,12 +305,15 @@ for sesindx=1:numel(ses)
     
     %specify external channel info to the header
     %note; this does not change the header of the data file
-    EXG_chan_types = cell(9,1);
+    EXG_chan_types = cell(8,1);
     EXG_chan_types(:) = {'EMG'};
-    cfg.hdr.chantype(end-8:end) = EXG_chan_types;
-    EXG_chan_units = cell(9,1);
+    cfg.hdr.chantype(end-8:end-1) = EXG_chan_types;
+    cfg.hdr.chantype(end) = {'TRIG'};
+
+    EXG_chan_units = cell(8,1);
     EXG_chan_units(:) = {'uV'};
-    cfg.hdr.chanunit(end-8:end) = EXG_chan_units;
+    cfg.hdr.chanunit(end-8:end-1) = EXG_chan_units;
+    cfg.hdr.chanunit(end) = {'n/a'};
 
     %%%%%%%%  EVENTS %%%%%%%%
     %read the events of the bdf file
@@ -293,14 +322,14 @@ for sesindx=1:numel(ses)
     %check that the .bdf file only contains the expected amount of events
     if exist('trig_start_value','var')
         if sum([event_struct.value]==trig_start_value)~=n_trig_start
-            fprintf('WARNING: Subject %s has more trigger start events than expected. Check whether the data file includes tasks other than %s.',cfg.sub,task)
+            fprintf('WARNING: Subject %s has more trigger start events than expected. Check whether the data file includes tasks other than %s\n.',cfg.sub,task)
         end
     end
     
     %extract the sampling frequency
     fs = cfg.hdr.Fs;  %e.g. 4096
     
-    %%%%% MANUALLY DEFINE THIS SECTION FOR EVENTS TO GO INTO EVENTS.TSV %%%%%%
+    %%%%% Define events to go into events.tsv %%%%%%
     delay = 37;
     load(sprintf('%s/subject_%s_MMN_triggers.mat',data_dir.(ses{sesindx}),cfg.sub));
 
@@ -361,80 +390,108 @@ for sesindx=1:numel(ses)
 
     cfg.events = table2struct(event_table);
     cfg.keep_events_order = true; %should the events be sorted according to sample or should it keep the order in cfg.events?
+    
+    
+    %%%%% Write events.json %%%%%% 
+    
+    if events_in_sub_dir 
+        %the name of the events.json 
+        %place the events.json in subject directory if events_in_sub_dir is true
+        if isstruct(data_dir)
+            event_json = fullfile(bids_dir, sprintf('/sub-%$1s/ses-%$2s/%$3s/sub-%$1s_ses-%$2s_task-%$4s_events.json',cfg.sub,ses{sesindx},cfg.datatype,task));
+        else
+            event_json = fullfile(bids_dir, sprintf('/sub-%$1s/%$2s/sub-%$1s_task-%$3s_events.json',cfg.sub,cfg.datatype,task));
+        end
+    else
+        %place the events.json in bids_dir if events_in_sub_dir is false.
+        event_json = fullfile(bids_dir, sprintf('task-%s_events.json',cfg.sub,cfg.datatype,task));
+    end
+    
+    if write_events
+        %description, units, or categorical levels of variables (columns) in events.tsv
+        %this information goes into events.json
+        cfg.TaskEventsDescription.onset.Description = 'Onset of stimuli. The onset of the sound being played for the subject and not the onset of epoch';
+        cfg.TaskEventsDescription.onset.Units = 's';
 
-    %make bids dataset
+        cfg.TaskEventsDescription.duration.Description = 'Duration of stimuli';
+        cfg.TaskEventsDescription.duration.Units = 's';
+
+        cfg.TaskEventsDescription.sample.Description = '????';
+        cfg.TaskEventsDescription.sample.Units = 's';
+
+        cfg.TaskEventsDescription.type.Description = '????';
+        cfg.TaskEventsDescription.type.Levels.STATUS = 'STATUS type';
+        cfg.TaskEventsDescription.type.Levels.Epoch = 'Epoch type';
+        cfg.TaskEventsDescription.type.Levels.CM_in_range = 'CM_in_range type';
+
+        cfg.TaskEventsDescription.delay.Description = 'Delay between the trigger and when the sound is actually played in the headphones of 37 ms';
+        cfg.TaskEventsDescription.delay.Units = 's';
+
+        cfg.TaskEventsDescription.conditionlabel.Description = '????';
+        cfg.TaskEventsDescription.conditionlabel.Levels.Int_1 = '????';
+        cfg.TaskEventsDescription.conditionlabel.Levels.Int_2 = '????';
+
+        cfg.TaskEventsDescription.rand_ISI.Description = '????';
+        cfg.TaskEventsDescription.rand_ISI.Units = '????';
+
+        cfg.TaskEventsDescription.start_samples.Description = '????';
+        cfg.TaskEventsDescription.start_samples.Units = '????';
+
+        cfg.TaskEventsDescription.StimulusPresentation.OperatingSystem = '????';
+        cfg.TaskEventsDescription.StimulusPresentation.SoftwareName = '????';
+        %cfg.TaskEventsDescription.StimulusPresentation.SoftwareRRID = '????';
+        cfg.TaskEventsDescription.StimulusPresentation.SoftwareVersion = '????';
+        %cfg.TaskEventsDescription.StimulusPresentation.code = '????';
+
+        if exist('event_txt_file','var')
+            %read txt to a cell 
+            eventsC = read_txt(event_txt_file);
+
+            %write info from the event_txt_file with a specific formating and
+            %extra notes to the config struct that generates events.json 
+            %add value and notes to the event.json  
+            extra_notes = ' The variables from subject_*SUB_ID*_MMN_triggers.mat files are added to the events.tsv files as start_sample -> start_sample, rand_ISI -> rand_ISI, mmn-codes -> conditionlabels.';
+            cfg.TaskEventsDescription = read_events_txt(cfg.TaskEventsDescription,eventsC,extra_notes);
+        end
+
+        %write the file 
+        fn = fieldnames(cfg.TaskEventsDescription);
+        TaskEventsDescription_settings = keepfields(cfg.TaskEventsDescription, fn);
+        ft_write_json(event_json, TaskEventsDescription_settings);
+    end
+    
+    %make sure not to write events.json file more than once if it is to be
+    %placed in bids_dir, e.i if sub-XXX is in file name the events.json 
+    %should not be written next iteration of subject loop
+    if ~contains(event_json, sprintf('sub-%s',cfg.sub))
+        write_events = false;
+    end
+    
+    %make bids dataset with the cfg struct
     data2bids(cfg);
     
     end
 end
 
 
-%% Write events.json 
-
-%For the current dataset all events.tsv files have identical variables,
-%thus through the inheritance principle the events.json is placed in the
-%bids_dir, and covers all subjects.
+%% Write channels.json file 
 
 if strcmp(run_mode,'new_BIDS')
-    %the name of the events.json 
-    filename = fullfile(bids_dir, sprintf('task-%s_events.json',task));
-    
-    %description, units, or categorical levels of variables in events.tsv
-    %this information goes into events.json
-    cfg.TaskEventsDescription.onset.Description = 'Onset of stimuli. The onset of the sound being played for the subject and not the onset of epoch';
-    cfg.TaskEventsDescription.onset.Units = 's';
+    filename = fullfile(cfg.bidsroot, sprintf('task-%s_channels.json',task));
+    cfg.ChannelsDescription.name.Description = 'name of channel label????';
+    cfg.ChannelsDescription.name.Levels.EXG1 = 'External channel 1. Mastoid left ear';
+    cfg.ChannelsDescription.name.Levels.EXG2 = 'External channel 2. Mastoid right ear';
+    cfg.ChannelsDescription.name.Levels.EXG3 = 'External channel 3, Left ear lobe';
+    cfg.ChannelsDescription.name.Levels.EXG4 = 'External channel 4. Right ear lobe';
+    cfg.ChannelsDescription.name.Levels.EXG5 = 'External channel 5. Nose';
+    cfg.ChannelsDescription.name.Levels.EXG6 = 'External channel 6. Below participants right eye';
+    cfg.ChannelsDescription.name.Levels.EXG7 = 'External channel 7. Above participants right eye';
+    cfg.ChannelsDescription.name.Levels.EXG8 = 'External channel 8. Pulse left hand';
 
-    cfg.TaskEventsDescription.duration.Description = 'Duration of stimuli';
-    cfg.TaskEventsDescription.duration.Units = 's';
-
-    cfg.TaskEventsDescription.sample.Description = '????';
-    cfg.TaskEventsDescription.sample.Units = 's';
-
-    cfg.TaskEventsDescription.type.Description = '????';
-    cfg.TaskEventsDescription.type.Levels.STATUS = 'STATUS type';
-    cfg.TaskEventsDescription.type.Levels.Epoch = 'Epoch type';
-    cfg.TaskEventsDescription.type.Levels.CM_in_range = 'CM_in_range type';
-    
-    cfg.TaskEventsDescription.delay.Description = 'Delay between the trigger and when the sound is actually played in the headphones of 37 ms';
-    cfg.TaskEventsDescription.delay.Units = 's';
-    
-    cfg.TaskEventsDescription.conditionlabel.Description = '????';
-    cfg.TaskEventsDescription.conditionlabel.Levels.Int_1 = '????';
-    cfg.TaskEventsDescription.conditionlabel.Levels.Int_2 = '????';
-
-    cfg.TaskEventsDescription.rand_ISI.Description = '????';
-    cfg.TaskEventsDescription.rand_ISI.Units = '????';
-    
-    cfg.TaskEventsDescription.start_samples.Description = '????';
-    cfg.TaskEventsDescription.start_samples.Units = '????';
-    
-    cfg.TaskEventsDescription.StimulusPresentation.OperatingSystem = '????';
-    cfg.TaskEventsDescription.StimulusPresentation.SoftwareName = '????';
-    %cfg.TaskEventsDescription.StimulusPresentation.SoftwareRRID = '????';
-    cfg.TaskEventsDescription.StimulusPresentation.SoftwareVersion = '????';
-    %cfg.TaskEventsDescription.StimulusPresentation.code = '????';
-
-    if exist('event_txt_file','var')
-        %read txt to a cell 
-        eventsC = read_txt(event_txt_file);
-        
-        %write info from the event_txt_file with a specific formating and
-        %extra notes to the config struct that generates events.json 
-        %add value and notes to the event.json  
-        extra_notes = ' The variables from subject_*SUB_ID*_MMN_triggers.mat files are added to the events.tsv files as start_sample -> start_sample, rand_ISI -> rand_ISI, mmn-codes -> conditionlabels.';
-        cfg.TaskEventsDescription = read_events_txt(cfg.TaskEventsDescription,eventsC,extra_notes);
-    end
-    
-    %check which variables in the events.tsv that are not described in the
-    %config struct to generate the events.json
-    non_described_vars = check_described_variables_in_tsv(bids_dir,cfg.TaskEventsDescription,sub,'events.tsv');
-    
-    %write the file 
-    fn = fieldnames(cfg.TaskEventsDescription);
-    TaskEventsDescription_settings = keepfields(cfg.TaskEventsDescription, fn);
-    ft_write_json(filename, TaskEventsDescription_settings);
+    fn = fieldnames(cfg.ChannelsDescription);
+    ChannelsDescription_settings = keepfields(cfg.ChannelsDescription, fn);
+    ft_write_json(filename, ChannelsDescription_settings);
 end
-
 
 
 
@@ -463,27 +520,6 @@ if strcmp(run_mode,'new_BIDS')
 end
 
 
-%% Write channels.json file 
-
-if strcmp(run_mode,'new_BIDS')
-    filename = fullfile(cfg.bidsroot, sprintf('task-%s_channels.json',task));
-    cfg.ChannelsDescription.name.Description = 'name of channel label????';
-    cfg.ChannelsDescription.name.Levels.EXG1 = 'External channel 1. Mastoid left ear';
-    cfg.ChannelsDescription.name.Levels.EXG2 = 'External channel 2. Mastoid right ear';
-    cfg.ChannelsDescription.name.Levels.EXG3 = 'External channel 3, Left ear lobe';
-    cfg.ChannelsDescription.name.Levels.EXG4 = 'External channel 4. Right ear lobe';
-    cfg.ChannelsDescription.name.Levels.EXG5 = 'External channel 5. Nose';
-    cfg.ChannelsDescription.name.Levels.EXG6 = 'External channel 6. Below participants right eye';
-    cfg.ChannelsDescription.name.Levels.EXG7 = 'External channel 7. Above participants right eye';
-    cfg.ChannelsDescription.name.Levels.EXG8 = 'External channel 8. Pulse left hand';
-
-    fn = fieldnames(cfg.ChannelsDescription);
-    ChannelsDescription_settings = keepfields(cfg.ChannelsDescription, fn);
-    ft_write_json(filename, ChannelsDescription_settings);
-end
-
-
-
 %% Copy this script to the /code directory in BIDS structure 
 
 code_dir = fullfile(bids_dir,'/code');
@@ -509,7 +545,7 @@ end
 if strcmp(run_mode,'new_BIDS')
     %write a readme about extra information
     fileID = fopen(fullfile(bids_dir,'README'),'w');
-    fprintf(fileID,'Something, something');
+    fprintf(fileID,'The EEG dataset includes 4 tasks performed in the following order: ASSR regular (first task), ASSR irregular (second task), Flanker (third task) and MMN (forth task)\n');
     fclose(fileID);
     
     %write .bidsignore file for the BIDS validator
