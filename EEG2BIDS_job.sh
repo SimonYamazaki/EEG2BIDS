@@ -49,40 +49,31 @@ set -- "${POSITIONAL[@]}" # restore positional parameters
 if [[ -z "${sess}" && -z "${subj}" ]]; then
 echo "Running BIDS dataset without any specific subject or session"
 echo "Running ${script2exe}.m"
-/mnt/depot64/matlab/R2020a/bin/matlab -nodesktop -nojvm -nosplash -r "${script2exe}('${BIDS_dir}')"
-source $HOME/anaconda3/bin/activate
-python change_json_int_keys.py
-echo
-echo "#####  BIDS VALIDATION OUTPUT  #####"
-echo
-module load nodejs
-/mnt/projects/VIA11/EEG/BIDS_validator/node_modules/bids-validator/bin/bids-validator $BIDS_dir >> "${BIDS_dir}/cluster_submissions/slurm-${SLURM_JOB_ID}-${ts}.txt"
+matlab_command="${script2exe}('${BIDS_dir}')"
+out_file_path="${BIDS_dir}/cluster_submissions/slurm-${SLURM_JOB_ID}-${script2exe}-${ts}.txt"
 
 elif [[ -z "${subj}" || -z "${sess}" ]];
 then
 echo "Running BIDS dataset for subject "${subj}" but without any session"
-echo "Running ${script2exe}.m"
-/mnt/depot64/matlab/R2020a/bin/matlab -nodesktop -nojvm -nosplash -r "${script2exe}('${BIDS_dir}','${subj}')"
-source $HOME/anaconda3/bin/activate
-python change_json_int_keys.py
-echo
-echo "#####  BIDS VALIDATION OUTPUT  #####"
-echo
-module load nodejs
-/mnt/projects/VIA11/EEG/BIDS_validator/node_modules/bids-validator/bin/bids-validator $BIDS_dir >> "${BIDS_dir}/cluster_submissions/slurm-${SLURM_JOB_ID}-${ts}-${subj}.txt"
+matlab_command="${script2exe}('${BIDS_dir}','${subj}')"
+out_file_path="${BIDS_dir}/cluster_submissions/slurm-${SLURM_JOB_ID}-${script2exe}-${ts}-${subj}.txt"
 
 else
 echo "Running BIDS dataset for subject "${subj}" in session "${sess}""
+matlab_command="${script2exe}('${BIDS_dir}','${subj}','${sess}')"
+out_file_path="${BIDS_dir}/cluster_submissions/slurm-${SLURM_JOB_ID}-${script2exe}-${ts}-${subj}-${sess}.txt"
+fi
+
 echo "Running ${script2exe}.m"
-/mnt/depot64/matlab/R2020a/bin/matlab -nodesktop -nojvm -nosplash -r "${script2exe}('${BIDS_dir}','${subj}','${sess}')"
+/mnt/depot64/matlab/R2020a/bin/matlab -nodesktop -nojvm -nosplash -r "${matlab_command}"
 source $HOME/anaconda3/bin/activate
 python change_json_int_keys.py
 echo
 echo "#####  BIDS VALIDATION OUTPUT  #####"
 echo
 module load nodejs
-/mnt/projects/VIA11/EEG/BIDS_validator/node_modules/bids-validator/bin/bids-validator $BIDS_dir >> "${BIDS_dir}/cluster_submissions/slurm-${SLURM_JOB_ID}-${ts}-${subj}-${sess}.txt"
-fi
+/mnt/projects/VIA11/EEG/BIDS_validator/node_modules/bids-validator/bin/bids-validator $BIDS_dir >> "${out_file_path}"
+
 
 
 #/mnt/projects/VIA11/EEG/BIDS_validator/node_modules/bids-validator/bin/bids-validator $BIDS_dir --json > $BIDS_dir/BIDS_validation.json 

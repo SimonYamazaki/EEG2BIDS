@@ -315,31 +315,17 @@ end
 %% NOTES
 
 
-% COMMENTS
-% kan der ligger mere end én .bdf fil i /eeg mappen? - ja, skal være adskilt med task eller run 
-% kan man ligge flere tasks sammen i et bids_dir? - ja, fx. ds002 i bids-examples
-
-
 % DO NOW 
 % samle warnings et bestemt sted i .out filen, så man nemmere kan se det for hele datasettet i stedet for at skulle lede det hele igennem?
-% make it optional to parse data_dir to EEG2BIDS.sh
+% make it optional to parse data_dir to EEG2BIDS.sh instead of session?
 % lav liste med ting der skal udfyldes - aka alle ???? - send dem løbende som noget der skal udfyldes 
 % lav en EEG2BIDS_template.m - når EEG2BIDS_MMN er færdig med ændringer
 %       - fyld behav data i med column name check 
 %       - lav electrodes filer
 %lav flanker og ASSR_irreg scripts, når bdf file split er lavet - det ændre vel ikke scriptet, hvis de nye filer hedder det de skal?
 %lav ses compatible: nono_keywords, txt-filer
-%evt lav et script til at sætte bids op og et script til at tilføje tasks?
-%skal man i terminal functionen give et data_dir i stedet for en session?
 %flere tasks - do the same for channels.json as with events.json 
-%lav en add_rows function til events.tsv - som tager ekstra kolonner + navne som input og tilføjer dem til cfg.events 
-%lav stim files til en funktion
-
-% ÆNDRINGER
-% hvad skal der gøres med de filer, som har 2 datasæt - hvordan har du analyseret det? 
-%       - hvis tilføjes, skal der ligges en readme eller lign? - kunne man godt
-%       - split filerne op hvis muligt med en funktion - kan gøres med actiview
-
+%TÆNK: lav et bids setup script ?? tænk over README, dataset_description,
 
 % scripts brugt til at lave dataset i /code - triggers scripts? - melissa finder den
 % external channels type - melissa undersøger
@@ -349,9 +335,7 @@ end
 % lav liste med ting der skal udfyldes i json filerne  
 %    - events.json 
 %    - participants.json filerne skal udfyldes med en .txt fil - husk stimuli
-%    - software, matlab scripts?
 %    - opgiv gentofte hospital som kontakt for mere info i forhold til participants.tsv
-%    - hvilken type channels er de external?
 
 
 
@@ -385,6 +369,11 @@ end
 % Flanker træningsdata i /beh mappe? - skal ikke bruges
 % convertering til EDF? - nej 
 % skal det så være run eller task? - flere tasks 
+% hvad skal der gøres med de filer, som har 2 datasæt - hvordan har du analyseret det? 
+%       - hvis tilføjes, skal der ligges en readme eller lign? - kunne man godt
+%       - split filerne op hvis muligt med en funktion - kan gøres med actiview
+% kan der ligger mere end én .bdf fil i /eeg mappen? - ja, skal være adskilt med task eller run 
+% kan man ligge flere tasks sammen i et bids_dir? - ja, fx. ds002 i bids-examples
 
 
 %% Loading things

@@ -33,6 +33,7 @@ end
 for f = 1:length(files_checked)
     
     for s = 1:length(ses)
+        
         if strcmp(ses{s},'None')
             sub_dirs = {dir(sprintf('%s/**/*_%s',bids_dir,files_checked.(ses{s}){f})).name};
         else
@@ -42,14 +43,17 @@ for f = 1:length(files_checked)
         subs_with_file = cellfun(@(x) x(5:7),sub_dirs,'un',0);
 
         if any(~ismember(existing_sub.(ses{s}),subs_with_file))
-            sub2redo = existing_sub.(ses{s}){~ismember(existing_sub.(ses{s}),subs_with_file)};
-            existing_sub.(ses{s})(strcmp(existing_sub.(ses{s}),sub2redo))=[];
+            sub2redo = existing_sub.(ses{s})(~ismember(existing_sub.(ses{s}),subs_with_file));
             
-            if strcmp(ses{s},'None')
-                fprintf('WARNING: Subject %s is missing a %s file\n',sub2redo,files_checked{f})
-            else
-                fprintf('WARNING: Subject %s is missing a %s file in session %s\n',sub2redo,files_checked{f},ses{s})
-            end
+            existing_sub.(ses{s})(ismember(existing_sub.(ses{s}),sub2redo))=[];
+            
+%             for sub = 1:length(sub2redo)
+%                 if strcmp(ses{s},'None')
+%                     fprintf('WARNING: Subject %s is missing a %s file\n',sub2redo{sub},files_checked.(ses{s}){f})
+%                 else
+%                     fprintf('WARNING: Subject %s is missing a %s file in session %s\n',sub2redo{sub},files_checked.(ses{s}){f},ses{s})
+%                 end
+%             end
         end
     end
 end

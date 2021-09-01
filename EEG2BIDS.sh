@@ -56,16 +56,16 @@ ts=$(date +%FT%T)
 
 if [[ -z "${sess}" && -z "${subj}" ]]; then
 echo "Running BIDS dataset without any specific subject or session"
-sbatch --output="${BIDS_dir}/cluster_submissions/slurm-%j-${ts}.txt" "EEG2BIDS_job.sh" --bids_dir ${BIDS_dir} --datetime ${ts} --script ${script2exe}
+sbatch --output="${BIDS_dir}/cluster_submissions/slurm-%j-${script2exe}-${ts}.txt" "EEG2BIDS_job.sh" --bids_dir ${BIDS_dir} --datetime ${ts} --script ${script2exe}
 
 elif [[ -z "${subj}" || -z "${sess}" ]];
 then
 echo "Running BIDS dataset for subject "${subj}" but without any session"
-sbatch --output="${BIDS_dir}/cluster_submissions/slurm-%j-${ts}-${subj}.txt" "EEG2BIDS_job.sh" --bids_dir ${BIDS_dir} --datetime ${ts} --subject ${subj} --script ${script2exe}
+sbatch --output="${BIDS_dir}/cluster_submissions/slurm-%j-${script2exe}-${ts}-${subj}.txt" "EEG2BIDS_job.sh" --bids_dir ${BIDS_dir} --datetime ${ts} --subject ${subj} --script ${script2exe}
 
 else
 echo "Running BIDS dataset for subject "${subj}" in sion "${sess}""
-sbatch --output="${BIDS_dir}/cluster_submissions/slurm-%j-${ts}-${subj}-${sess}.txt" "EEG2BIDS_job.sh" --bids_dir ${BIDS_dir} --datetime ${ts} --subject ${subj} --session ${sess} --script ${script2exe}
+sbatch --output="${BIDS_dir}/cluster_submissions/slurm-%j-${script2exe}-${ts}-${subj}-${sess}.txt" "EEG2BIDS_job.sh" --bids_dir ${BIDS_dir} --datetime ${ts} --subject ${subj} --session ${sess} --script ${script2exe}
 fi
 
 

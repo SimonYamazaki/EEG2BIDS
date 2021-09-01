@@ -12,14 +12,12 @@ for s = 2:length(MMN_split)
     if ~isnan(str2double(level_key))
         cfg_struct.value.Levels.(strcat('Int_',level_key)) = MMN_split{s}{1};
     else
-        notes = strcat(notes,' ',level_key);
+        notes = strcat(notes,' ',level_key); %everything else
     end
 end
 
 if nargin == 3
-    cfg_struct.Non_column_descriptor.Notes = strcat(notes,extra_notes);
-else
-    cfg_struct.Non_column_descriptor.Notes = notes;
+    cfg_struct.Additional_notes_to_tsv.Notes = extra_notes;
 end
     
 end

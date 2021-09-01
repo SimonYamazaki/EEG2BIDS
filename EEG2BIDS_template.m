@@ -66,7 +66,7 @@ participants_var_txt = fullfile(data_dir.via11,'participants_variables.txt');
     generated_event_table = table(type,sample,value,offset,duration);
     event_table = [bdf_event_table;generated_event_table];
 
-    event_table.stim_file = [cell(length(event_struct),1); repmat(bids_stim_file_name(1),length(conditionlabels),1)];
+    event_table.stim_file = [cell(length(event_struct),1); repmat(bids_stim_file_name.(ses{sesindx})(1),length(conditionlabels),1)];
     event_table.delay = ones(length(event_struct)+length(conditionlabels),1)*delay/1000;
     event_table.conditionlabel = [cell(length(event_struct),1); conditionlabels(:)];
 
