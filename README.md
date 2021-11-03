@@ -1,9 +1,10 @@
 ## EEG2BIDS
-How to make a BIDS compliant EEG dataset
 
 Notes: 
 - only works for files that can be read by fieldtrip. Currently only tested for .bdf files.
 - assumes access to a slurm batch system with the command ```sbatch```
+
+# How to make a BIDS compliant EEG dataset
 
 1. Clone this repository and a modified version of the fieldtrip repository from [here](https://github.com/SimonYamazaki/fieldtrip). Remember to add the paths of these repositories in your matlab scripts. 
 
