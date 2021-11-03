@@ -27,6 +27,11 @@ while [[ $# -gt 0 ]]; do
       shift # past argument
       shift # past value
       ;;
+    -a|--anaconda)
+      anaconda_path="$2"
+      shift # past argument
+      shift # past value
+      ;;
     --default)
       DEFAULT=YES
       shift # past argument
@@ -54,21 +59,22 @@ mkdir -p "${BIDS_dir}/cluster_submissions"
 
 ts=$(date +%FT%T)
 
+script_name_and_ext=$(basename "$script2exe")
+arr=(${script_name_and_ext//./ })
+script2exe_wo_ext=${arr[0]}
+
+
 if [[ -z "${sess}" && -z "${subj}" ]]; then
-echo "Running BIDS dataset without any specific subject or session"
-sbatch --output="${BIDS_dir}/cluster_submissions/slurm-%j-${script2exe}-${ts}.txt" "EEG2BIDS_job.sh" --bids_dir ${BIDS_dir} --datetime ${ts} --script ${script2exe}
+echo "Running BIDS dataset for multiple subjects or sessions"
+sbatch --output="${BIDS_dir}/cluster_submissions/slurm-%j-${script2exe_wo_ext}-${ts}.txt" "EEG2BIDS_job.sh" --bids_dir ${BIDS_dir} --datetime ${ts} --script ${script2exe} --anaconda ${anaconda_path}
 
 elif [[ -z "${subj}" || -z "${sess}" ]];
 then
 echo "Running BIDS dataset for subject "${subj}" but without any session"
-sbatch --output="${BIDS_dir}/cluster_submissions/slurm-%j-${script2exe}-${ts}-${subj}.txt" "EEG2BIDS_job.sh" --bids_dir ${BIDS_dir} --datetime ${ts} --subject ${subj} --script ${script2exe}
+sbatch --output="${BIDS_dir}/cluster_submissions/slurm-%j-${script2exe_wo_ext}-${ts}-${subj}.txt" "EEG2BIDS_job.sh" --bids_dir ${BIDS_dir} --datetime ${ts} --subject ${subj} --script ${script2exe} --anaconda ${anaconda_path}
 
 else
-echo "Running BIDS dataset for subject "${subj}" in sion "${sess}""
-sbatch --output="${BIDS_dir}/cluster_submissions/slurm-%j-${script2exe}-${ts}-${subj}-${sess}.txt" "EEG2BIDS_job.sh" --bids_dir ${BIDS_dir} --datetime ${ts} --subject ${subj} --session ${sess} --script ${script2exe}
+echo "Running BIDS dataset for subject "${subj}" in session "${sess}""
+sbatch --output="${BIDS_dir}/cluster_submissions/slurm-%j-${script2exe_wo_ext}-${ts}-${subj}-${sess}.txt" "EEG2BIDS_job.sh" --bids_dir ${BIDS_dir} --datetime ${ts} --subject ${subj} --session ${sess} --script ${script2exe} --anaconda ${anaconda_path}
 fi
-
-
-#example: bash EEG2BIDS.sh --bids_dir /home/simonyj/EEG_BIDS_MMN --script EEG2BIDS_MMN
-
 

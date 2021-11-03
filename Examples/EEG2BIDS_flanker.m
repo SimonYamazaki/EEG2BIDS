@@ -327,6 +327,7 @@ end
 %flere tasks - do the same for channels.json as with events.json 
 %TÆNK: lav et bids setup script ?? tænk over README, dataset_description,
 
+
 % scripts brugt til at lave dataset i /code - triggers scripts? - melissa finder den
 % external channels type - melissa undersøger
 
