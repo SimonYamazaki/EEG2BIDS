@@ -1,0 +1,16 @@
+Events send from matlab		Read to EEGlab or Fieldtrip
+
+0: start of file				65280
+1: When the first sound is played		65281
+
+There is only an event when the first tone is played.
+The rest of the events should be added afterwards in the analysis of the data.
+
+This is carried out using the file subject_MMN_triggers.mat that can be loaded into matlab
+This file contains:
+mmn_codes: a vector with the tones played: 1 is standard, 2 is deviant1, 3 is deviant2, 4 is deviant3
+rand_ISI: a vector with the interstimulus interval (jittered between 400-600 ms)
+start_samples: start_samples of each tone (with the sound sampling frequency 44100). To recalcilate this to the EEG samples: 
+start_samples_EEG = round(start_samples/(44100/fs_EEG))
+
+Note: There is a delay between the trigger and when the sound is actually played in the headphones of 37 ms, see also the file trigger_delay.

@@ -1,0 +1,12 @@
+Name: MRI_age_v11
+Description: Age at MRI date
+Units: years
+
+Name: Sex_child_v11
+Description: Gender of the participant
+Levels: 0: female, 1: male
+
+
+Name: HighRiskStatus_v11
+Description: High risk status group memebership
+Levels: Sz: FHR for schizophrenia, K: pobulation based control, BP: FHR for bipolar disorder

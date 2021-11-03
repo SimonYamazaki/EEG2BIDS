@@ -1,10 +1,10 @@
-## EEG2BIDS
+# EEG2BIDS
 
 Notes: 
 - only works for files that can be read by fieldtrip. Currently only tested for .bdf files.
 - assumes access to a slurm batch system with the command ```sbatch```
 
-# How to make a BIDS compliant EEG dataset
+## How to make a BIDS compliant EEG dataset
 
 1. Clone this repository and a modified version of the fieldtrip repository from [here](https://github.com/SimonYamazaki/fieldtrip). Remember to add the paths of these repositories in your matlab scripts. 
 
@@ -12,7 +12,7 @@ Notes:
 	```*YOUR-TASK*_events.txt```,
 	```*YOUR-TASK*_instructions.txt```,
 	```participants_variables.txt```
-These files must follow the exact format of the examples in this repository to be loaded correctly. If files follow another format the loading procedure of such files must be changed in the ```EEG2BIDS_*YOUR-TASK*.m``` script. If json file fields should be integers, name the field ```Int_1``` for a integer field called 1.
+These files must follow the exact format as seen in ```/Examples/example_files``` in this repository to be loaded correctly by functions in ```/utils```. If files follow another format the loading procedure of such files must be changed in the ```EEG2BIDS_*YOUR-TASK*.m``` script. If integer json file fields are desired, name the field ```Int_1``` for the integer field ```1``` in your matlab script. This is performed by the script ```/src/change_json_int_keys.py```.
 
 
 3. In a terminal run the following line from ```/src``` folder: 
