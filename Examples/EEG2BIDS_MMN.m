@@ -405,8 +405,8 @@ for sesindx=1:numel(input.ses)
         %write the file 
         fn = fieldnames(cfg.TaskEventsDescription);
         TaskEventsDescription_settings = keepfields(cfg.TaskEventsDescription, fn);
-        ft_write_json(event_json, TaskEventsDescription_settings);
-        fprintf('writing %s\n',event_json)
+        ft_write_json(cfg.event_json_file, TaskEventsDescription_settings);
+        fprintf('writing %s\n',cfg.event_json_file)
     end
     
     %make sure not to write events.json file more than once if it is to be
