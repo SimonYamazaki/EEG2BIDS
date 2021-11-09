@@ -1,10 +1,10 @@
-function [sub,ses,bdf_file_names] = define_sub_ses_bdf(varargin)
+function [sub,ses,bdf_file_names,bdf_file_folders] = define_sub_ses_bdf(varargin)
 %UNTITLED3 Summary of this function goes here
 %   Detailed explanation goes here
 
 data_dir = varargin{1};
 data_file = varargin{2};
-via_id = varargin{3};
+IDs = varargin{3};
 vars_input = varargin{4};
 if nargin >= 5
     nono_keywords_in_filename = varargin{5};
@@ -18,9 +18,9 @@ end
 
 
 if exist('search_method','var')
-    [sub,bdf_file_names] = find_sub_ids(data_dir, data_file, via_id, nono_keywords_in_filename,'method',search_method,char_idx);
+    [sub,bdf_file_names,bdf_file_folders] = find_sub_ids(data_dir, data_file, IDs, nono_keywords_in_filename,'method',search_method,char_idx);
 else
-    [sub,bdf_file_names] = find_sub_ids(data_dir, data_file, via_id, nono_keywords_in_filename);
+    [sub,bdf_file_names,bdf_file_folders] = find_sub_ids(data_dir, data_file, IDs, nono_keywords_in_filename);
 end
 
 

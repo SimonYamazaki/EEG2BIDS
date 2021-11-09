@@ -1,4 +1,4 @@
-function EEG2BIDS_MMN(varargin)
+function EEG2BIDS_MMN2(varargin)
 
 %add paths to relevant toolboxes
 addpath('/home/simonyj/EEG_flanker/fieldtrip/')
@@ -17,40 +17,72 @@ addpath('/home/simonyj/EEG2BIDS/utils/')
 % - Go through each section in this script with "CHANGES NEEDED IN THIS SECTION" 
 %and make changes appropriate for your dataset
 
+%Path to the EEG2BIDS dir from https://github.com/SimonYamazaki/EEG2BIDS
+init.EEG2BIDS_tool_dir = '/home/simonyj/EEG2BIDS';
+
 %The name of the bids dataset
 % - name of your BIDS dataset to go into the dataset_description.json
 % - this is different that bids_dir, which is a path to your BIDS folder
-bids_dataset_name = 'VIA11_BIDS';
+init.bids_dataset_name = 'VIA11_BIDS';
+
+%The task name
+% - The task that this script concerns
+% - Each task has a unique label that MUST only consist of letters and/or 
+%numbers. Other characters, including spaces and underscores, are not allowed
+init.task = 'MMN';
+
 
 %Specify data directories
 % - If session folders should be created in the bids dataset, data_dir should
 %be a struct with the fieldnames corresponding to the session names
 % - If no sessions are needed let data_dir be a character array with the
 %data_dir path
-data_dir.via11 = '/home/simonyj/EEG_MMN';
-data_dir.via15 = '/home/simonyj/EEG_MMN';
-bids_dir = varargin{1}; %bids_dir is parsed as the first input in the function 
-
-%Path to the EEG2BIDS dir from https://github.com/SimonYamazaki/EEG2BIDS
-EEG2BIDS_tool_dir = '/home/simonyj/EEG2BIDS';
-
-%The task name
-% - The task that this script concerns
-% - Each task has a unique label that MUST only consist of letters and/or 
-%numbers. Other characters, including spaces and underscores, are not allowed
-task = 'MMN';
+% - If data is not located in the same folder refer to "Manually specifying
+%data files" below and comment/remove definitions of init.data_dir,
+%init.data_file, init.nono_keywords_in_filename, init.id_search_method
+init.data_dir.via11 = '/home/simonyj/EEG_MMN';
+init.data_dir.via15 = '/home/simonyj/EEG_MMN';
+init.bids_dir = varargin{1}; %bids_dir is parsed as the first input in the function 
 
 %Search pattern for data files in data_dir
 % - data_file follows the same structure as data_dir with respect to sessions
 % - field names must be identical to data_dir field names
 % - searches data_dir for data_file
-data_file.via11 = '*_MMN.bdf';
-data_file.via15 = '*_MMN.bdf';
+init.data_file.via11 = '*_MMN.bdf';
+init.data_file.via15 = '*_MMN.bdf';
 
 %Keywords in the data_file name that should not be present
 % - OPTIONAL
 % - if this keyword is found, the file will not be moved to BIDS dataset
-nono_keywords_in_filename = {'Flanker','ASSR'};
+init.nono_keywords_in_filename = {'Flanker','ASSR'};
+
+%Specify method to extract subject id from file name
+% - assumes that the subject ids to include in the bids dataset can be 
+%extracted from data_file
+% - if the subject id can not be extracted from the file name, refer to 
+%"Manually specifying data files" below
+% - must be a cell array with 'manual' or 'auto'
+% - the 'auto' method will use an automatic id detection 
+% - if the 'manual' method is specified, the second element in the cell array
+%should be a double array with character indexes for the subject id in the 
+%file name string, that is the whole file name and not data_file. Assumes
+%that subject ids is extracted from the same character indexes in all files
+%example: init.id_search_method = {'manual',1:3};
+%init.id_search_method = {'auto'};
+
+
+%Manually specifying data files
+% - OPTIONAL
+% - if subject ids cant be extracted from data_file, add them manually
+% - Do not define these structs if data_dir and data_file is defined
+%init.sub.via11 = {'009'  '146'  '302'};
+%init.sub_files.via11 = {'/path/to/file1.bdf','/path/to/file2.bdf','/path/to/file3.bdf'};
+%init.sub.via15 = {'009'  '146'  '302'};
+%init.sub_files.via15 = {'/path/to/file1.bdf','/path/to/file2.bdf','/path/to/file3.bdf'};
+
+%A subject ID prefix for subject folders in bids_dir
+% - OPTIONAL
+init.ID_prefix = 'via';
 
 %Search pattern for other files that must exist along the data_file
 % - OPTIONAL
@@ -59,8 +91,8 @@ nono_keywords_in_filename = {'Flanker','ASSR'};
 % - currently searches data_dir for these files
 % - EXEPTION: if there are sessions without the need of must_exist_files, then
 %simply dont define the field of that session in must_exist_files
-must_exist_files.via11 = {'*_triggers.mat'}; 
-must_exist_files.via15 = {'*_triggers.mat'}; 
+init.must_exist_files.via11 = {'*_triggers.mat'}; 
+init.must_exist_files.via15 = {'*_triggers.mat'}; 
 
 
 %Search pattern for files that must exist to determine existing subjects in BIDS directory
@@ -69,9 +101,9 @@ must_exist_files.via15 = {'*_triggers.mat'};
 % - must include all the sessions defined in data_dir
 % - files_checked searches for these files in the /eeg folder within each
 % subject folder
-files_checked.via11 = {sprintf('*task-%s_eeg.bdf',task),sprintf('*task-%s_eeg.json',task),...
-                       sprintf('*task-%s_events.tsv',task),sprintf('*task-%s_channels.tsv',task)};
-files_checked.via15 = files_checked.via11;
+init.files_checked.via11 = {sprintf('*task-%s_eeg.bdf',init.task),sprintf('*task-%s_eeg.json',init.task),...
+                       sprintf('*task-%s_events.tsv',init.task),sprintf('*task-%s_channels.tsv',init.task)};
+init.files_checked.via15 = init.files_checked.via11;
 
 
 %Parse a subject info table from database for participant information.
@@ -79,28 +111,39 @@ files_checked.via15 = files_checked.via11;
 % - assumes the table has a column of subject id, where rows consists of 
 %participant info for a particular subject id 
 % - assumes that participant info is identical for all tasks in bids_dir
-sub_info_table_path = '/mnt/projects/VIA11/database/VIA11_allkey_160621.csv';
-sub_info_table = readtable(sub_info_table_path); %read the table 
-id_col_name = 'famlbnr'; %the column name which represents subject IDs in sub_info_table
+init.sub_info_table_path = '/mnt/projects/VIA11/database/VIA11_allkey_160621.csv';
+init.sub_info_table = readtable(init.sub_info_table_path); %read the table 
+
+%Get subject ids coloum from the sub_info_table table. Each element in this 
+%coloumn must be a unique identifier for that particular subject.
+init.IDs_col = init.sub_info_table.('famlbnr'); %keep this intermediate step
+
+%Transform the IDs from sub_info_table to the character arrays that is expected 
+%from the subject ID extraction of file names. If data files were manually 
+%specified, then transform the subject IDs from the sub_info_table to the 
+%format of the subject IDs specified in init.sub
+% - example: if the ID coloum in sub_info_table is integers, but you expect
+%character arrays of leading zeros transformation should be as below:
+init.IDs = cellstr(num2str(init.IDs_col,'%03d')); 
 
 % - only include these participant info variables (columns) in participants.tsv
 % - if no variables are listed, all variables are added to the participants.tsv
-participant_info_include = {'MRI_age_v11', 'Sex_child_v11','HighRiskStatus_v11'};
+init.participant_info_include = {'MRI_age_v11', 'Sex_child_v11','HighRiskStatus_v11'};
 
 %Path to stimulation files to include in /stimuli directory in bids_dir
 % - OPTIONAL
-stim_files.via11 = {'/home/simonyj/EEG_MMN/std.wav','/home/simonyj/EEG_MMN/dev1.wav',...
+init.stim_files.via11 = {'/home/simonyj/EEG_MMN/std.wav','/home/simonyj/EEG_MMN/dev1.wav',...
             '/home/simonyj/EEG_MMN/dev2.wav','/home/simonyj/EEG_MMN/dev3.wav'};
-stim_files.via15 = {'/home/simonyj/EEG_MMN/std.wav','/home/simonyj/EEG_MMN/dev1.wav',...
+init.stim_files.via15 = {'/home/simonyj/EEG_MMN/std.wav','/home/simonyj/EEG_MMN/dev1.wav',...
             '/home/simonyj/EEG_MMN/dev2.wav','/home/simonyj/EEG_MMN/dev3.wav'};
 
 %Whether to include a scans.tsv file
-include_scans_tsv = false;
+init.include_scans_tsv = true;
 
 %Whether to write dataset_description.json
 % - dataset_description.json should always be written unless multiple tasks 
 %are combined into one bids_dir
-write_dataset_description = true; 
+init.write_dataset_description = true; 
 
 %Whether to include events.tsv
 % - events MAY be either stimuli presented to the participant or participant responses
@@ -109,141 +152,37 @@ write_dataset_description = true;
 % - refer to the events part of section "Generate BIDS structure and files"
 %in this script for any custom changes to this events.tsv file outside the 
 %events in the bdf file header
-include_events_tsv = true; 
+init.include_events_tsv = true; 
 
 %Simple verification of the expected amount of triggers in bdf file header
 % - start event value in eeg files header
-trig_start_value = 65281;
+init.trig_start_value = 65281;
 % - number of expected events with this start event value
-n_trig_start = 1;
+init.n_trig_start = 1;
 
 %Should events.json be loacted in bids_dir or subject folders
 % - if in bids_dir, according to the inheritance principle, the event
 %files are general for all subjects and sessions
-events_in_sub_dir = true; %false -> events.json will be located in bids_dir
+init.events_in_sub_dir = true; %false -> events.json will be located in bids_dir
 
 %txt file paths to be read
 % - OPTIONAL
-event_txt_file = fullfile(data_dir.via11,'MMN_events.txt'); % txt file with information about events but not the events itself. This includes trigger values or notes about the events in general. Should have a specific format, check other events.txt in github repo
-instructions_txt = fullfile(data_dir.via11,'MMN_instructions.txt'); %txt file with instructions. Should be instructions combined in one single line of a txt file. 
-participants_var_txt = fullfile(data_dir.via11,'participants_variables.txt'); %txt file with a description about the variables in participants.tsv. This could also include levels for categorical variables or units for variables. Has specific format.
+init.event_txt_file = fullfile(init.data_dir.via11,'MMN_events.txt'); % txt file with information about events but not the events itself. This includes trigger values or notes about the events in general. Should have a specific format, check other events.txt in github repo
+init.instructions_txt = fullfile(init.data_dir.via11,'MMN_instructions.txt'); %txt file with instructions. Should be instructions combined in one single line of a txt file. 
+init.participants_var_txt = fullfile(init.data_dir.via11,'participants_variables.txt'); %txt file with a description about the variables in participants.tsv. This could also include levels for categorical variables or units for variables. Has specific format.
+
+%extra notes to go into events.json 
+% - OPTIONAL
+init.extra_notes = ' The variables from subject_*SUB_ID*_MMN_triggers.mat files are added to the events.tsv files as start_sample -> start_sample, rand_ISI -> rand_ISI, mmn-codes -> conditionlabels.';
 
 
-%% Configure the setup
-% NO CHANGES NEEDED IN THIS SECTION
+init.varargin = varargin;
 
-%read the subject table for info to go into participants.tsv 
-sub_id = sub_info_table.(id_col_name); %get subject ids from the subject table. These are needed for functions to load proper subject info later.
-
-%the path of the current script
-this_file_path = mfilename('fullpath');
-this_file_path = strcat(this_file_path,'.m');
-
-%define sessions, subjects and their data_files (in this case the data_files are bdf files)
-%varargin is the arguments that was parsed to this script, e.i. bids_dir and potentially single subject id and session
-[sub,ses,bdf_file_names] = define_sub_ses_bdf(data_dir, data_file, sub_id, varargin, nono_keywords_in_filename);
-
-%get subjects with the additional files that was specified in the variable "must_exist_files"
-if exist('must_exist_files','var')
-    [subs_with_all_files,subs_with_additional_files,additional_file_names] = search_must_exist_files(data_dir,sub_id,must_exist_files);
-    cmp_and_print_subs_with_file(sub,subs_with_additional_files,must_exist_files,ses) % compare the subjects to be moved to the bids_dir with the subjects that has the additional files. This function also prints the comparison.
-end
-
-%prellocate memory for information about which sessions should be run
-finished_ses = false(1,length(ses));
-ses_run = false(1,length(ses));
-ses_add = false(1,length(ses));
-
-for s = 1:length(ses)
-    %only include subjects that has the additional_files
-    if exist('must_exist_files','var')
-        excluded_subs = sub.(ses{s})(~ismember(sub.(ses{s}),subs_with_all_files.(ses{s}))); %subjects which does not have one of the must_exist_files
-
-        %print warning if subjects are excluded
-        if ~isempty(excluded_subs)
-            fprintf('WARNING: Subject %s will not be included in the BIDS directory as they are missing a "must_exist_file" ',excluded_subs{:})
-            fprintf('in session %s\n',ses{s})
-            bdf_file_names.(ses{s}) = bdf_file_names.(ses{s})(~ismember(sub.(ses{s}),subs_with_all_files.(ses{s}))); %the exlusion of subjects which are already existing in the bids_dir
-            sub.(ses{s}) = sub.(ses{s})(ismember(sub.(ses{s}),subs_with_all_files.(ses{s}))); %the exlusion of the subjects who does not have the must_exist_files
-        end
-    end
-    
-    %find existing subjects in the bids structure by searching for files_checked
-    existing_sub = find_existing_subs(bids_dir,files_checked,ses(s));
-    
-    if length(varargin)==1 %if only the bids_dir is parsed to this function, e.i. running this script for multiple subjects 
-        bdf_file_names.(ses{s}) = bdf_file_names.(ses{s})(~ismember(sub.(ses{s}),existing_sub.(ses{s}))); %the exlusion of subjects which are already existing in the bids_dir
-        sub.(ses{s}) = sub.(ses{s})(~ismember(sub.(ses{s}),existing_sub.(ses{s}))); %the exlusion of subjects which are already existing in the bids_dir
-
-        finished_ses(s) = isempty(sub.(ses{s})) && ~isempty(existing_sub.(ses{s})); %the sessions that are done
-        ses_run(s) = ~isempty(sub.(ses{s})) && isempty(existing_sub.(ses{s})); %the sessions that should be run/started/created
-        ses_add(s) = ~isempty(sub.(ses{s})) && ~isempty(existing_sub.(ses{s})); %the existing sessions with subjects to be added to
-        
-    elseif length(varargin)>1 %running this script for a single subject
-
-        assert(~isempty(sub.(ses{s})),sprintf('A BIDS directory will not be made for subject %s. Check warnings above',varargin{2}))
-        
-        finished_ses(s) = false; %the sessions that are done
-        ses_run(s) = ~isempty(sub.(ses{s})) && isempty(existing_sub.(ses{s})); %the sessions that should be run/started/created
-        ses_add(s) = ~isempty(sub.(ses{s})) && ~isempty(existing_sub.(ses{s})); %the existing sessions with subjects to be added to
-    end
-end
-
-
-%only run this script if there are unfinished sessions
-assert( ~all(finished_ses), 'All relevant subject files are already moved to BIDS data structure in all sessions. Add more subject files to the data_dir or run EEG2BIDS.sh for a specific subject.')
-
-%new sessions to be added (which also includes creating a new bids dataset)
-if any(ses_run)
-    if length(ses(ses_run))==1
-        if strcmp(ses{ses_run},'None')
-            fprintf('Creating new BIDS dataset from subject files \n')
-        end
-    else
-        fprintf('Creating new BIDS dataset for session %s from subject files \n',ses{ses_run})
-    end
-    run_mode = 'new_BIDS'; %implies that a new session or BIDS dataset is to be created, along general files such as dataset_description, participants.json
-else
-    run_mode = 'exist_BIDS';
-end
-
-%subjects to be added to an existing session
-if any(ses_add) %sessions to add assuming that other parts of the BIDS dataset have been created successfully
-    ses_to_add = ses(ses_add);
-    for s = 1:length(ses_to_add)
-        for ss = 1:length(sub.(ses_to_add{s}))
-            fprintf('Moving subject %s files into BIDS dataset for session %s \n',sub.(ses_to_add{s}){ss},ses_to_add{s})
-        end
-    end
-end
-
-
-%% Copy the stimulation files to /stim direcotry
-% NO CHANGES NEEDED IN THIS SECTION
-
-if exist('stim_files','var')
-    
-    stim_dir = fullfile(bids_dir,'/stimuli'); %the stimuli dir in the bids_dir
-    if not(isfolder(stim_dir)) %only make the stimuli dir if it does not exist
-        mkdir(stim_dir)
-    end
-    
-    %get path to stim files in bids_dir and the name + extension of files
-    [bids_stim_file_path, bids_stim_file_name] = get_bids_stim_files(stim_files,stim_dir);
-
-    %copy them into the appropriate folder
-    if strcmp(run_mode,'new_BIDS')
-        cp_ses_files(stim_files, bids_stim_file_path)    
-    end
-
-end
+input = configure_init(init);
 
 
 %% Generate BIDS structure and files
 % CHANGES NEEDED IN THIS SECTION
-
-%This section is the most essential part of the BIDS dataset creation 
-
 
 %%%%%% Use data2bids function on each subject in loop %%%%%%%%
 
@@ -251,70 +190,39 @@ end
 % https://github.com/SimonYamazaki/fieldtrip/blob/master/data2bids.m
 % which is a modified version of: https://github.com/fieldtrip/fieldtrip/blob/master/data2bids.m
 
-if not(isfolder(bids_dir))
-    mkdir(bids_dir)
-end
-
-%read instructions into cell 
-if exist('instructions_txt','var')
-    InstructionsC = read_txt(instructions_txt);
-end
-
-%variables that are changed in the loop in certain cases
-write_events = true;
-write_channels = true;
 
 %loop over sessions and subjects to make bids_dir for
-
-for sesindx=1:numel(ses)
-    for subindx=1:numel(sub.(ses{sesindx}))
+for sesindx=1:numel(input.ses)
+    for subindx=1:numel(input.sub.(input.ses{sesindx}))
     
     % initialize config struct
     cfg = [];
     cfg.method    = 'copy'; %only copy the files
     cfg.datatype  = 'eeg'; %the type of data
-
-    % specify the output directory (bids_dir)
-    cfg.bidsroot  = bids_dir;
+    cfg.sesindx = sesindx;
+    cfg.subindx = subindx;
     
-    %By default if no session is specified, the cell array "ses" is named
-    %'None' through functions in the EEG2BIDS_tool_dir
-    if ~strcmp(ses{sesindx},'None')
-        cfg.ses       = ses{sesindx};
-    end
-    
-    % get subject ID 
-    cfg.sub       = sub.(ses{sesindx}){subindx};
-    sub_int       = str2num(cfg.sub);
-    
-    %specify whether files should be included
-    cfg.include_scans = include_scans_tsv;
-    cfg.write_events_tsv = include_events_tsv;
-        
-    % define data file for current subject in loop
-    if isstruct(data_dir)
-        cfg.dataset   = char(fullfile(data_dir.(ses{sesindx}),bdf_file_names.(ses{sesindx}){subindx}));
-    else
-        cfg.dataset   = char(fullfile(data_dir,bdf_file_names.(ses{sesindx}){subindx}));
-    end
+    %Configure inputs and add it to the cfg struct. The cfg struct is unique
+    %for every iteration in this loop, i.e. for every session and subject
+    cfg = configure_input(cfg,input);
     
     %general information to be put into dataset_description.json file
-    if write_dataset_description
+    if init.write_dataset_description
         cfg.dataset_description.BIDSVersion = '1.6';
-        cfg.dataset_description.Name = bids_dataset_name;
+        cfg.dataset_description.Name = init.bids_dataset_name;
         cfg.dataset_description.DatasetType = 'raw';
         cfg.dataset_description.EthicsApprovals = {'The local Ethical Committee (Protocol number: H 16043682)','The Danish Data Protection Agency (IDnumber RHP-2017-003, I-suite no. 05333)'};
     end
     
-    % specify the information for the participants.tsv file
-    cfg.participants = make_participants_cfg(sub_info_table,sub_id,sub_int,participant_info_include);
+    %Specify the information for the participants.tsv file
+    cfg.participants = make_participants_cfg(cfg,input);
     
-    % specify some general information that will be added to the eeg.json file
+    %Specify some general information that will be added to the eeg.json file
     cfg.InstitutionName             = 'Centre for Functional and Diagnostic Imagning and Research, Danish Research Center for Magnetic Resonance, Amager and Hvidovre hospital';
     cfg.InstitutionAddress          = 'Kettegard Allé 30, DK-2650 Hvidovre, Denmark';
     
-    % provide the mnemonic and long description of the task
-    cfg.TaskName        = task;
+    %Provide the mnemonic and long description of the task
+    cfg.TaskName        = init.task;
     cfg.TaskDescription = '????';
 
     % EEG specific configs saved in *_eeg.json file 
@@ -325,11 +233,6 @@ for sesindx=1:numel(ses)
     %cfg.eeg.CogPOID               = '????';
     cfg.eeg.DeviceSerialNumber    = '????';
     cfg.eeg.EEGReference          = 'Common Mode Sense (CMS) and Driven Right Leg (DRL)'; 
-    
-    %include the instructions if they are read
-    if exist('InstructionsC','var')
-        cfg.eeg.Instructions          = InstructionsC{1};
-    end
     
     %software filters
     swf.filter_characteristic = '????';
@@ -344,8 +247,13 @@ for sesindx=1:numel(ses)
     cfg.eeg.CapManufacturersModelName = '????';
     cfg.eeg.EEGPlacementScheme = 'radial';
 
+    
     %%%%%%%  HEADER  %%%%%%%%%
     %this part can be removed if no additional channel info is needed
+    %first the header of the eeg file is read and then additional 
+    %channel information is added. Modififying the cfg.hdr will not 
+    %change anything in the eeg file, only in the custom header struct to 
+    %be parsed to the function that generates the bids files
     
     %read the header of bdf_file
     cfg.hdr = ft_read_header(cfg.dataset);
@@ -363,24 +271,32 @@ for sesindx=1:numel(ses)
     cfg.hdr.chanunit(end) = {'n/a'};
 
     %%%%%%%%  EVENTS %%%%%%%%
-    if include_events_tsv
+    %This part can be removed if no additional events should be added to
+    %the events.tsv. If this part is removed, the only things that go into
+    %the events.tsv file is the events read in the eeg file header.
+    %first the header of the eeg file is read and then additional 
+    %events can be added. Modififying the event_struct will not 
+    %change anything in the eeg file, only in the event_struct that is 
+    %parsed to the function that generates the bids files
+    
+    if init.include_events_tsv %only include the events.tsv file if specified in the init struct
 
         %read the events of the bdf file
         event_struct = ft_read_event(cfg.dataset);
 
         %check that the .bdf file only contains the expected amount of events
-        if exist('trig_start_value','var')
-            if sum([event_struct.value]==trig_start_value)~=n_trig_start
-                fprintf('WARNING: Subject %s has more trigger start events than expected. Check whether the data file includes tasks other than %s\n.',cfg.sub,task)
+        if isfield(init,'trig_start_value')
+            if sum([event_struct.value]==init.trig_start_value)~=init.n_trig_start
+                fprintf('WARNING: Subject %s has more trigger start events than expected. Check whether the data file includes tasks other than %s\n.',cfg.sub,init.task)
             end
         end
 
-        %extract the sampling frequency
-        fs = cfg.hdr.Fs;  %e.g. 4096
+        %extract the sampling frequency from somewhere
+        fs = cfg.hdr.Fs; 
 
         %%%%% Define events to go into events.tsv %%%%%%
         delay = 37;
-        load(sprintf('%s/subject_%s_MMN_triggers.mat',data_dir.(ses{sesindx}),cfg.sub));
+        load(sprintf('%s/subject_%s_MMN_triggers.mat',init.data_dir.(input.ses{sesindx}),cfg.file_sub_id));
 
         % estimate the start of the first sound
         bdf_event_samples = [event_struct.sample];    
@@ -396,7 +312,7 @@ for sesindx=1:numel(ses)
         S.trl(1,1)=timestart*fs+round((delay/1000)*fs); %-0.1*fs; %(the -0.1*fs shifts the start of the epoch to be 100ms before the sound which SPM wants)
         S.conditionlabels{1,1} = 'std';
         duration_vec(1,1) = 50/1000;
-        table_sf{1,1} = bids_stim_file_name.(ses{sesindx}){1};
+        table_sf{1,1} = input.bids_stim_file_name.(input.ses{sesindx}){1};
 
         trig=round(start_samples/(44100/4096));
 
@@ -405,19 +321,19 @@ for sesindx=1:numel(ses)
             if mmn_codes(i)==1
                 S.conditionlabels{i,:}= 'std';
                 duration_vec(i,1) = 50/1000;
-                table_sf{i} = bids_stim_file_name.(ses{sesindx}){1};
+                table_sf{i} = input.bids_stim_file_name.(input.ses{sesindx}){1};
             elseif mmn_codes(i) ==2
                 S.conditionlabels{i,:}= 'dev1';
                 duration_vec(i,1) = 50/1000;
-                table_sf{i} = bids_stim_file_name.(ses{sesindx}){2};
+                table_sf{i} = input.bids_stim_file_name.(input.ses{sesindx}){2};
             elseif mmn_codes(i) ==3
                 S.conditionlabels{i,:}='dev2';
                 duration_vec(i,1) = 100/1000;
-                table_sf{i} = bids_stim_file_name.(ses{sesindx}){3};
+                table_sf{i} = input.bids_stim_file_name.(input.ses{sesindx}){3};
             elseif mmn_codes(i) ==4
                 S.conditionlabels{i,:}='dev3';
                 duration_vec(i,1) = 100/1000;
-                table_sf{i} = bids_stim_file_name.(ses{sesindx}){4};
+                table_sf{i} = input.bids_stim_file_name.(input.ses{sesindx}){4};
             end
         end
 
@@ -442,27 +358,15 @@ for sesindx=1:numel(ses)
     end
     
     
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %%%%%%% MAKING THE SUBJECT BIDS DATASET FOR THE SUBJECT IN LOOP %%%%%%% 
-
+    
     %make bids dataset with the cfg struct
     data2bids(cfg);
-
     
-    %%%%% Write events.json %%%%%% 
-    if events_in_sub_dir 
-        %the name of the events.json 
-        %place the events.json in subject directory if events_in_sub_dir is true
-        if isstruct(data_dir)
-            event_json = fullfile(bids_dir, sprintf('/sub-%1$s/ses-%2$s/%3$s/sub-%1$s_ses-%2$s_task-%4$s_events.json',cfg.sub,ses{sesindx},cfg.datatype,task));
-        else
-            event_json = fullfile(bids_dir, sprintf('/sub-%1$s/%2$s/sub-%1$s_task-%3$s_events.json',cfg.sub,cfg.datatype,task));
-        end
-    else
-        %place the events.json in bids_dir if events_in_sub_dir is false.
-        event_json = fullfile(bids_dir, sprintf('task-%s_events.json',task));
-    end
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     
-    if write_events
+    if input.init.write_events
         %description, units, or categorical levels of variables (columns) in events.tsv
         %this information goes into events.json
         cfg.TaskEventsDescription.onset.Description = 'Onset of stimuli. The onset of the sound being played for the subject and not the onset of epoch';
@@ -498,17 +402,6 @@ for sesindx=1:numel(ses)
         cfg.TaskEventsDescription.StimulusPresentation.SoftwareVersion = '????';
         %cfg.TaskEventsDescription.StimulusPresentation.code = '????';
 
-        if exist('event_txt_file','var')
-            %read txt to a cell 
-            eventsC = read_txt(event_txt_file);
-
-            %write info from the event_txt_file with a specific formating and
-            %extra notes to the config struct that generates events.json 
-            %add value and notes to the event.json  
-            extra_notes = ' The variables from subject_*SUB_ID*_MMN_triggers.mat files are added to the events.tsv files as start_sample -> start_sample, rand_ISI -> rand_ISI, mmn-codes -> conditionlabels.';
-            cfg.TaskEventsDescription = read_events_txt(cfg.TaskEventsDescription,eventsC,extra_notes);
-        end
-
         %write the file 
         fn = fieldnames(cfg.TaskEventsDescription);
         TaskEventsDescription_settings = keepfields(cfg.TaskEventsDescription, fn);
@@ -520,8 +413,8 @@ for sesindx=1:numel(ses)
     %placed in bids_dir, e.i if sub-XXX is in file name the events.json 
     %should not be written next iteration of subject loop as only one
     %should be made jf. the inheritance principle
-    if ~contains(event_json, sprintf('sub-%s',cfg.sub))
-        write_events = false;
+    if ~contains(cfg.event_json_file, sprintf('sub-%s',cfg.sub))
+        input.init.write_events = false;
     end
     
     
@@ -536,20 +429,20 @@ end
 %therefore only one channels.josn file is written in the bids_dir. 
 %As of now, the channels.json file only includes non-standard channels
 
-if strcmp(run_mode,'new_BIDS')
-    channel_json = fullfile(bids_dir, sprintf('task-%s_channels.json',task));
-    cfg.ChannelsDescription.name.Description = 'name of channel label????';
-    cfg.ChannelsDescription.name.Levels.EXG1 = 'External channel 1. Mastoid left ear';
-    cfg.ChannelsDescription.name.Levels.EXG2 = 'External channel 2. Mastoid right ear';
-    cfg.ChannelsDescription.name.Levels.EXG3 = 'External channel 3, Left ear lobe';
-    cfg.ChannelsDescription.name.Levels.EXG4 = 'External channel 4. Right ear lobe';
-    cfg.ChannelsDescription.name.Levels.EXG5 = 'External channel 5. Nose';
-    cfg.ChannelsDescription.name.Levels.EXG6 = 'External channel 6. Below participants right eye';
-    cfg.ChannelsDescription.name.Levels.EXG7 = 'External channel 7. Above participants right eye';
-    cfg.ChannelsDescription.name.Levels.EXG8 = 'External channel 8. Pulse left hand';
+if strcmp(input.run_mode,'new_BIDS')
+    channel_json = fullfile(init.bids_dir, sprintf('task-%s_channels.json',init.task));
+    ChannelsDescription.name.Description = 'name of channel label????';
+    ChannelsDescription.name.Levels.EXG1 = 'External channel 1. Mastoid left ear';
+    ChannelsDescription.name.Levels.EXG2 = 'External channel 2. Mastoid right ear';
+    ChannelsDescription.name.Levels.EXG3 = 'External channel 3, Left ear lobe';
+    ChannelsDescription.name.Levels.EXG4 = 'External channel 4. Right ear lobe';
+    ChannelsDescription.name.Levels.EXG5 = 'External channel 5. Nose';
+    ChannelsDescription.name.Levels.EXG6 = 'External channel 6. Below participants right eye';
+    ChannelsDescription.name.Levels.EXG7 = 'External channel 7. Above participants right eye';
+    ChannelsDescription.name.Levels.EXG8 = 'External channel 8. Pulse left hand';
 
-    fn = fieldnames(cfg.ChannelsDescription);
-    ChannelsDescription_settings = keepfields(cfg.ChannelsDescription, fn);
+    fn = fieldnames(ChannelsDescription);
+    ChannelsDescription_settings = keepfields(ChannelsDescription, fn);
     ft_write_json(channel_json, ChannelsDescription_settings);
     fprintf('writing %s\n',channel_json)
 end
@@ -560,64 +453,40 @@ end
 %NO CHANGES NEEDED IN THIS SECTION
 
 %All participant info is assumed to be identical for all tasks and sessions
-
-if strcmp(run_mode,'new_BIDS')
-    
-    %any additional info to include in json
-    cfg.ParticipantsDescription.participant_id.Description = 'The identification number of the subject';
-
-    %read from txt 
-    participants_var = read_txt(participants_var_txt);
-    
-    %read the participants_var as a cell into the config struct
-    cfg.ParticipantsDescription = read_participants_var_txt(cfg.ParticipantsDescription,participants_var,participant_info_include);
-    
-    %check which variables in the participants.tsv that are not described in the
-    %config struct to generate theparticipants.json
-    non_described_vars = check_described_variables_in_tsv(bids_dir,cfg.ParticipantsDescription,sub,'participants.tsv');
-    
-    %write the file 
-    participants_json = fullfile(bids_dir, 'participants.json');
-    fn = fieldnames(cfg.ParticipantsDescription);
-    ParticipantsDescription_settings = keepfields(cfg.ParticipantsDescription, fn);
-    ft_write_json(participants_json, ParticipantsDescription_settings);
-    fprintf('writing %s\n',participants_json)
+if strcmp(input.run_mode,'new_BIDS')
+    write_participants_json(init)
 end
-
 
 %% Copy scripts for bids dataset creation to the /code directory 
 % NO CHANGES NEEDED IN THIS SECTION
 
-code_dir = fullfile(bids_dir,'/code');
+%the path of the current script
+this_file_path = mfilename('fullpath');
+this_file_path = strcat(this_file_path,'.m');
 
-if not(isfolder(code_dir))
-    mkdir(code_dir)
-end
+%add paths to sxripts that should be added to /code directory in bids dataset
+code_file_paths = {this_file_path};
+code_file_paths{end+1} = fullfile(init.EEG2BIDS_tool_dir,'/src/change_json_int_keys.py');
+code_file_paths{end+1} = fullfile(init.EEG2BIDS_tool_dir,'/src/EEG2BIDS_job.sh');
+code_file_paths{end+1} = fullfile(init.EEG2BIDS_tool_dir,'/src/EEG2BIDS.sh');
 
-%copy this current script into /code in bids_dir
-[folder,name,ext]=fileparts(this_file_path);
-copyfile(this_file_path, fullfile(code_dir,strcat(name,ext)), 'f')
-
-%also copy BIDS validator, json fix scripts and job scripts
-if strcmp(run_mode,'new_BIDS')
-    copyfile(fullfile(EEG2BIDS_tool_dir,'/src/change_json_int_keys.py'), fullfile(code_dir,'/change_json_int_keys.py'), 'f')
-    copyfile(fullfile(EEG2BIDS_tool_dir,'/src/EEG2BIDS_job.sh'), fullfile(code_dir,'/EEG2BIDS_job.sh'), 'f')
-    copyfile(fullfile(EEG2BIDS_tool_dir,'/src/EEG2BIDS.sh'), fullfile(code_dir,'/EEG2BIDS.sh'), 'f')
+if strcmp(input.run_mode,'new_BIDS')
+    cp_code2bids(init,code_file_paths)
 end
 
 
 %% Write a readme and .bidsignore file 
 % CHANGES NEEDED IN THIS SECTION
 
-if strcmp(run_mode,'new_BIDS')
+if strcmp(input.run_mode,'new_BIDS')
     %write a readme about extra information
-    fileID = fopen(fullfile(bids_dir,'README'),'a');
+    fileID = fopen(fullfile(init.bids_dir,'README'),'a');
     fprintf(fileID,'The EEG dataset includes 4 tasks performed in the following order: ASSR regular (first task), ASSR irregular (second task), Flanker (third task) and MMN (forth task)\n');
     fclose(fileID);
     
     %write .bidsignore file for the BIDS validator
     %.bidsignore file has same syntax as .gitignore
-    fileID = fopen(fullfile(bids_dir,'.bidsignore'),'a');
+    fileID = fopen(fullfile(init.bids_dir,'.bidsignore'),'a');
     fprintf(fileID,'/cluster_submissions/'); %add lines to the .bidsignore file
     fclose(fileID);
 end
@@ -626,10 +495,10 @@ end
 %% Print an ending statement
 % NO CHANGES NEEDED IN THIS SECTION
 
-if strcmp(run_mode,'new_BIDS')
-    fprintf('Created BIDS dataset in: %s\n\n',bids_dir)
+if strcmp(input.run_mode,'new_BIDS')
+    fprintf('Created BIDS dataset in: %s\n\n',init.bids_dir)
 else
-    fprintf('Added subjects to the BIDS dataset in: %s\n\n',bids_dir)
+    fprintf('Added subjects to the BIDS dataset in: %s\n\n',init.bids_dir)
 end
 
 

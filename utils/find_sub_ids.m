@@ -1,4 +1,4 @@
-function [sub,bdf_file_names] = find_sub_ids(data_dir, file_patterns, via_id, varargin)
+function [sub,bdf_file_names,bdf_file_folders] = find_sub_ids(data_dir, file_patterns, IDs, varargin)
 %UNTITLED3 Summary of this function goes here
 %   Detailed explanation goes here
 
@@ -47,6 +47,11 @@ for s = 1:length(ses)
     assert(~isempty(file_struct),'No files matching the pattern %s found in %s',file_patterns_ses.(ses{s}),data_dir_ses.(ses{s}))
     
     bdf_file_names.(ses{s}) = cellstr({file_struct.name});
+    folders = cellstr({file_struct.folder});
+    folders = strcat(folders,'/');
+    bdf_file_folders.(ses{s}) = folders;
+    bdf_fullfile.(ses{s}) = strcat(folders,bdf_file_names.(ses{s}));
+    
     nono_bdf_file_idx = contains(bdf_file_names.(ses{s}),nono_keywords_in_filename);
     sub.(ses{s}) = cell(1,sum(not(nono_bdf_file_idx)));
     bdf_file_split = cellfun(@(x) split(x,{'subject','sub','_','-','.'}),bdf_file_names.(ses{s}),'UniformOutput',0);
@@ -54,10 +59,10 @@ for s = 1:length(ses)
         if strcmp(search_method,'auto')
             if ~nono_bdf_file_idx(ii)
                 numeric_idx = cell2mat(cellfun(@(x) ~isnan(str2double(x)),bdf_file_split{ii},'UniformOutput',0));
-                db_idx = ismember(bdf_file_split{ii},cellstr(num2str(via_id,'%03d')));
+                db_idx = ismember(bdf_file_split{ii},IDs);
                 sub.(ses{s}){ii} = bdf_file_split{ii}{and(numeric_idx,db_idx)};
             else
-                fprintf('WARNING: The subject file %s will NOT moved to the BIDS dataset for session %s\n',bdf_file_names.(ses{s}){ii},ses{s})
+                fprintf('WARNING: The subject file %s will NOT moved to the BIDS dataset for session %s\n',bdf_fullfile.(ses{s}){ii},ses{s})
             end
             
         elseif strcmp(search_method,'manual')
@@ -65,7 +70,7 @@ for s = 1:length(ses)
                 sub_bdf_file = bdf_file_names.(ses{s}){ii};
                 sub.(ses{s}){ii} = sub_bdf_file(char_idx);
             else
-                fprintf('WARNING: The subject file %s will NOT moved to the BIDS dataset. A subject directory is not made in the BIDS dataset for the subject which this file belongs to\n',bdf_file_names.(ses{s}){ii})
+                fprintf('WARNING: The subject file %s will NOT moved to the BIDS dataset. A subject directory is not made in the BIDS dataset for the subject which this file belongs to\n',bdf_fullfile.(ses{s}){ii})
             end
         end
     end
