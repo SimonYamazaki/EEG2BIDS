@@ -3,7 +3,7 @@ function write_participants_json(init)
 %   Detailed explanation goes here
 
 %any additional info to include in json
-cfg.ParticipantsDescription.participant_id.Description = 'Unique identifier of the subject';
+ParticipantsDescription.participant_id.Description = 'Unique identifier of the subject';
 
 %read from txt 
 participants_var = read_txt(init.participants_var_txt);

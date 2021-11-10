@@ -89,8 +89,8 @@ echo "Running ${script2exe}"
 /mnt/depot64/matlab/R2020a/bin/matlab -nodesktop -nojvm -nosplash -r "${matlab_command}"
 
 cd ${toolbox_folder}
-source ${anaconda_path}/bin/activate
-python change_json_int_keys.py
+#source ${anaconda_path}/bin/activate
+#python change_json_int_keys.py $BIDS_dir
 
 echo
 echo "#####  BIDS VALIDATION OUTPUT  #####"

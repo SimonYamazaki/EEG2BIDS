@@ -54,11 +54,11 @@ function cfg = configure_input(cfg,input)
         
         %write info from the event_txt_file with a specific formating
         %add value and notes to the event.json  
-        cfg.TaskEventsDescription = read_events_txt(eventsC);
+        cfg.event_json_struct = read_events_txt(eventsC);
     end
     
     if isfield(input.init,'extra_notes')
-        cfg.TaskEventsDescription.Additional_notes_to_tsv.Notes = input.init.extra_notes;
+        cfg.event_json_struct.Additional_notes_to_event_tsv.Notes = input.init.extra_notes;
     end
 
 end

@@ -1,4 +1,4 @@
-function EEG2BIDS_MMN2(varargin)
+function EEG2BIDS_MMN(varargin)
 
 %add paths to relevant toolboxes
 addpath('/home/simonyj/EEG_flanker/fieldtrip/')
@@ -211,28 +211,29 @@ for sesindx=1:numel(input.ses)
         cfg.dataset_description.BIDSVersion = '1.6';
         cfg.dataset_description.Name = init.bids_dataset_name;
         cfg.dataset_description.DatasetType = 'raw';
-        cfg.dataset_description.EthicsApprovals = {'The local Ethical Committee (Protocol number: H 16043682)','The Danish Data Protection Agency (IDnumber RHP-2017-003, I-suite no. 05333)'};
+        cfg.dataset_description.EthicsApprovals = {'The local Ethical Committee (Protocol number: H 16043682)','The Danish Data Protection Agency (IDnumber RHP-2017-003, I-suite no. 05333)'}; % - OPTIONAL
     end
     
     %Specify the information for the participants.tsv file
     cfg.participants = make_participants_cfg(cfg,input);
     
-    %Specify some general information that will be added to the eeg.json file
-    cfg.InstitutionName             = 'Centre for Functional and Diagnostic Imagning and Research, Danish Research Center for Magnetic Resonance, Amager and Hvidovre hospital';
-    cfg.InstitutionAddress          = 'Kettegard Allé 30, DK-2650 Hvidovre, Denmark';
-    
     %Provide the mnemonic and long description of the task
     cfg.TaskName        = init.task;
     cfg.TaskDescription = '????';
 
+    %Specify some general information that will be added to the eeg.json file
+    cfg.eeg.InstitutionName             = 'Centre for Functional and Diagnostic Imagning and Research, Danish Research Center for Magnetic Resonance, Amager and Hvidovre hospital'; % - RECOMMENDED
+    cfg.eeg.InstitutionAddress          = 'Kettegard Allé 30, DK-2650 Hvidovre, Denmark'; % - RECOMMENDED
+    
     % EEG specific configs saved in *_eeg.json file 
     cfg.eeg.PowerLineFrequency    = 50;
-    cfg.eeg.Manufacturer          = 'Biosemi';
-    cfg.eeg.ManufacturersModelName = '????';
-    cfg.eeg.SoftwareVersions      = '????';
-    %cfg.eeg.CogPOID               = '????';
-    cfg.eeg.DeviceSerialNumber    = '????';
     cfg.eeg.EEGReference          = 'Common Mode Sense (CMS) and Driven Right Leg (DRL)'; 
+
+    cfg.eeg.Manufacturer          = 'Biosemi'; % - RECOMMENDED
+    cfg.eeg.ManufacturersModelName = '????'; % - RECOMMENDED
+    cfg.eeg.SoftwareVersions      = '????'; % - RECOMMENDED
+    %cfg.eeg.CogPOID               = '????'; % - RECOMMENDED
+    cfg.eeg.DeviceSerialNumber    = '????'; % - RECOMMENDED
     
     %software filters
     swf.filter_characteristic = '????';
@@ -243,12 +244,12 @@ for sesindx=1:numel(input.ses)
     cfg.eeg.SoftwareFilters.Filter3       = swf3;
     
     %manufacturer information
-    cfg.eeg.CapManufacturer = 'Biosemi';
-    cfg.eeg.CapManufacturersModelName = '????';
-    cfg.eeg.EEGPlacementScheme = 'radial';
+    cfg.eeg.CapManufacturer = 'Biosemi'; % - RECOMMENDED
+    cfg.eeg.CapManufacturersModelName = '????'; % - RECOMMENDED
+    cfg.eeg.EEGPlacementScheme = 'radial'; % - RECOMMENDED
 
     
-    %%%%%%%  HEADER  %%%%%%%%%
+    %%%%%%%  HEADER  %%%%%%%%%  - OPTIONAL
     %this part can be removed if no additional channel info is needed
     %first the header of the eeg file is read and then additional 
     %channel information is added. Modififying the cfg.hdr will not 
@@ -270,7 +271,7 @@ for sesindx=1:numel(input.ses)
     cfg.hdr.chanunit(end-8:end-1) = EXG_chan_units;
     cfg.hdr.chanunit(end) = {'n/a'};
 
-    %%%%%%%%  EVENTS %%%%%%%%
+    %%%%%%%%  EVENTS %%%%%%%%  - OPTIONAL
     %This part can be removed if no additional events should be added to
     %the events.tsv. If this part is removed, the only things that go into
     %the events.tsv file is the events read in the eeg file header.
@@ -369,43 +370,43 @@ for sesindx=1:numel(input.ses)
     if input.init.write_events
         %description, units, or categorical levels of variables (columns) in events.tsv
         %this information goes into events.json
-        cfg.TaskEventsDescription.onset.Description = 'Onset of stimuli. The onset of the sound being played for the subject and not the onset of epoch';
-        cfg.TaskEventsDescription.onset.Units = 's';
+        cfg.event_json_struct.onset.Description = 'Onset of stimuli. The onset of the sound being played for the subject and not the onset of epoch';
+        cfg.event_json_struct.onset.Units = 's';
 
-        cfg.TaskEventsDescription.duration.Description = 'Duration of stimuli';
-        cfg.TaskEventsDescription.duration.Units = 's';
+        cfg.event_json_struct.duration.Description = 'Duration of stimuli';
+        cfg.event_json_struct.duration.Units = 's';
 
-        cfg.TaskEventsDescription.sample.Description = '????';
-        cfg.TaskEventsDescription.sample.Units = 's';
+        cfg.event_json_struct.sample.Description = '????';
+        cfg.event_json_struct.sample.Units = '????';
 
-        cfg.TaskEventsDescription.type.Description = '????';
-        cfg.TaskEventsDescription.type.Levels.STATUS = 'STATUS type';
-        cfg.TaskEventsDescription.type.Levels.Epoch = 'Epoch type';
-        cfg.TaskEventsDescription.type.Levels.CM_in_range = 'CM_in_range type';
+        cfg.event_json_struct.type.Description = '????';
+        cfg.event_json_struct.type.Levels.STATUS = 'STATUS type';
+        cfg.event_json_struct.type.Levels.Epoch = 'Epoch type';
+        cfg.event_json_struct.type.Levels.CM_in_range = 'CM_in_range type';
 
-        cfg.TaskEventsDescription.delay.Description = 'Delay between the trigger and when the sound is actually played in the headphones of 37 ms';
-        cfg.TaskEventsDescription.delay.Units = 's';
+        cfg.event_json_struct.delay.Description = 'Delay between the trigger and when the sound is actually played in the headphones of 37 ms';
+        cfg.event_json_struct.delay.Units = 's';
 
-        cfg.TaskEventsDescription.conditionlabel.Description = '????';
-        cfg.TaskEventsDescription.conditionlabel.Levels.Int_1 = '????';
-        cfg.TaskEventsDescription.conditionlabel.Levels.Int_2 = '????';
+        cfg.event_json_struct.conditionlabel.Description = '????';
+        cfg.event_json_struct.conditionlabel.Levels.Int_1 = '????';
+        cfg.event_json_struct.conditionlabel.Levels.Int_2 = '????';
 
-        cfg.TaskEventsDescription.rand_ISI.Description = '????';
-        cfg.TaskEventsDescription.rand_ISI.Units = '????';
+        cfg.event_json_struct.rand_ISI.Description = '????';
+        cfg.event_json_struct.rand_ISI.Units = '????';
 
-        cfg.TaskEventsDescription.start_samples.Description = '????';
-        cfg.TaskEventsDescription.start_samples.Units = '????';
+        cfg.event_json_struct.start_samples.Description = '????';
+        cfg.event_json_struct.start_samples.Units = '????';
 
-        cfg.TaskEventsDescription.StimulusPresentation.OperatingSystem = '????';
-        cfg.TaskEventsDescription.StimulusPresentation.SoftwareName = '????';
+        cfg.event_json_struct.StimulusPresentation.OperatingSystem = '????';
+        cfg.event_json_struct.StimulusPresentation.SoftwareName = '????';
         %cfg.TaskEventsDescription.StimulusPresentation.SoftwareRRID = '????';
-        cfg.TaskEventsDescription.StimulusPresentation.SoftwareVersion = '????';
+        cfg.event_json_struct.StimulusPresentation.SoftwareVersion = '????';
         %cfg.TaskEventsDescription.StimulusPresentation.code = '????';
 
         %write the file 
-        fn = fieldnames(cfg.TaskEventsDescription);
-        TaskEventsDescription_settings = keepfields(cfg.TaskEventsDescription, fn);
-        ft_write_json(cfg.event_json_file, TaskEventsDescription_settings);
+        fn = fieldnames(cfg.event_json_struct);
+        cfg.event_json_struct = keepfields(cfg.event_json_struct, fn);
+        ft_write_json(cfg.event_json_file, cfg.event_json_struct);
         fprintf('writing %s\n',cfg.event_json_file)
     end
     
@@ -453,7 +454,7 @@ end
 %NO CHANGES NEEDED IN THIS SECTION
 
 %All participant info is assumed to be identical for all tasks and sessions
-if strcmp(input.run_mode,'new_BIDS')
+if strcmp(input.run_mode,'new_BIDS') && isfield(init,'participants_var_txt')
     write_participants_json(init)
 end
 
@@ -477,6 +478,7 @@ end
 
 %% Write a readme and .bidsignore file 
 % CHANGES NEEDED IN THIS SECTION
+% - RECOMMENDED
 
 if strcmp(input.run_mode,'new_BIDS')
     %write a readme about extra information
