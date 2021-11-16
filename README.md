@@ -33,12 +33,12 @@ slurm-{SLURM_JOB_ID}-YY-MM-DDT-HH:MM:SS.txt
 ```
 If a single subject is run the subject ID is appended as so:
 ```
-slurm-{SLURM_JOB_ID}-YY-MM-DDT-HH:MM:SS-SUBJECT_ID.txt
+slurm-{SLURM_JOB_ID}-YY-MM-DDT-HH:MM:SS-{SUBJECT_ID}.txt
 ```
 
-In case you have multiple tasks / paradigms that you want in one bids_dir, make a ```EEG2BIDS_*YOUR-TASK*.m``` for each task, and run them sequentially with the same bids_dir. Make sure to only write init.dataset_description information in the first task.
+In case you have multiple tasks / paradigms that you want in one bids_dir, make a ```EEG2BIDS_*YOUR-TASK*.m``` for each task, and run them sequentially with the same bids_dir. The init.dataset_description information is only needed in the first task script.
 
+If nothing is outputted from your matlab script in the .txt file in ```/cluster_submission```, debug by running the matlab script isolated in matlab. E.g. run the function in your script in the matlab command window without any specific subject ```EEG2BIDS_flanker('/path/to/bids_dir')``` or for a specific subject ```EEG2BIDS_flanker('/path/to/bids_dir',"009","via11")``` 
 
 (4). If any source data or derivative data should be added to the BIDS directory make a ```EEG2BIDS_*YOUR-TASK*_derivatives.m``` or ```EEG2BIDS_*YOUR-TASK*_sourcedata.m``` file.
 
-If nothing is outputted from your matlab script in the .out file, debug by running the matlab script isolated in matlab. E.g. run the function in your script in the matlab command window without any specific subject ```EEG2BIDS_flanker('/path/to/bids_dir')``` or for a specific subject ```EEG2BIDS_flanker('/path/to/bids_dir',"009","via11")``` 
