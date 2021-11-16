@@ -1,9 +1,22 @@
 function cfg = configure_input(cfg,input)
 %UNTITLED4 Summary of this function goes here
 %   Detailed explanation goes here
-
+    
+    if isfield(input.init,'dataset_description')
+        input.init.write_dataset_description = true;
+        fn = fields(input.init.dataset_description);
+        for ii=1:length(fn)
+            cfg.dataset_description.(fn{ii}) = input.init.dataset_description.(fn{ii});
+        end
+    else
+        input.init.write_dataset_description = false;        
+    end
+    
     sesindx = cfg.sesindx;
     subindx = cfg.subindx;
+    
+    %specify that the data is eeg 
+    cfg.datatype  = 'eeg'; 
     
     % specify the output directory (bids_dir)
     cfg.bidsroot  = input.init.bids_dir;
@@ -16,7 +29,12 @@ function cfg = configure_input(cfg,input)
     
     % get subject ID 
     cfg.file_sub_id  = input.sub.(input.ses{sesindx}){subindx};
-    cfg.sub          = strcat(input.init.ID_prefix, input.sub.(input.ses{sesindx}){subindx});
+    
+    if isfield(input.init, 'ID_prefix')
+        cfg.sub          = strcat(input.init.ID_prefix, input.sub.(input.ses{sesindx}){subindx});
+    else
+        cfg.sub          = strcat(input.sub.(input.ses{sesindx}){subindx});  
+    end
     
     %specify whether files should be included
     cfg.include_scans = input.init.include_scans_tsv;
