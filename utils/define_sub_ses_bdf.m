@@ -1,27 +1,36 @@
-function [sub,ses,bdf_file_names,bdf_file_folders] = define_sub_ses_bdf(varargin)
+function [sub,ses,bdf_file_names,bdf_file_folders] = define_sub_ses_bdf(init)
 %UNTITLED3 Summary of this function goes here
 %   Detailed explanation goes here
 
-data_dir = varargin{1};
-data_file = varargin{2};
-IDs = varargin{3};
-vars_input = varargin{4};
-if nargin >= 5
-    nono_keywords_in_filename = varargin{5};
+data_dir = init.data_dir;
+data_file = init.data_file;
+IDs = init.IDs;
+vars_input = init.varargin;
+
+inputs_to_find_sub_ids = {data_dir,data_file,IDs,vars_input};
+
+if isfield(init,'nono_keywords_in_filename')
+    inputs_to_find_sub_ids{end+1} = init.nono_keywords_in_filename;
 end
 
-char_arguments = varargin(cellfun(@(c) ischar(c), varargin));
-if ismember('method',char_arguments)
-    search_method = varargin{find(strcmp(varargin,'method')==1)+1};
-    char_idx = varargin{find(strcmp(varargin,'method')==1)+2};
+if isfield(init,'id_trans')
+    inputs_to_find_sub_ids{end+1} = init.id_trans;
 end
 
-
-if exist('search_method','var')
-    [sub,bdf_file_names,bdf_file_folders] = find_sub_ids(data_dir, data_file, IDs, nono_keywords_in_filename,'method',search_method,char_idx);
+if isfield(init,'id_search_method')
+    inputs_to_find_sub_ids{end+1} = 'method';
+    search_method = init.id_search_method{1};
+    inputs_to_find_sub_ids{end+1} = search_method;
+    
+    if strcmp(search_method,'manual')
+        char_idx = init.id_search_method{2};
+        inputs_to_find_sub_ids{end+1} = char_idx;
+    end
 else
-    [sub,bdf_file_names,bdf_file_folders] = find_sub_ids(data_dir, data_file, IDs, nono_keywords_in_filename);
+    assert(isfield(init,'id_search_method'),'A search method was not defined, which is needed if data_dir is specified to know how to extract ids.')
 end
+
+[sub,bdf_file_names,bdf_file_folders] = find_sub_ids(inputs_to_find_sub_ids{:});
 
 
 if length(vars_input) == 2

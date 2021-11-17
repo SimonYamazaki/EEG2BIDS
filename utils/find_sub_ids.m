@@ -7,23 +7,47 @@ function [sub,bdf_file_names,bdf_file_folders] = find_sub_ids(data_dir, file_pat
 % file_patterns = varargin{2};
 % via_id = varargin{3};
 
+% if nargin == 3
+%     nono_keywords_in_filename = {'%%€264#&#%(/()&%€#!'}; %random string
+%     search_method = 'auto';
+% elseif nargin == 4
+%     nono_keywords_in_filename = varargin{1};
+%     search_method = 'auto';
+% elseif ismember('method',varargin) && nargin == 6
+%     nono_keywords_in_filename = {'%%€264#&#%(/()&%€#!'}; %random string
+%     search_method = varargin{find(strcmp(varargin,'method')==1)+1};
+%     char_idx = varargin{end};
+% elseif ismember('method',varargin) && nargin == 7
+%     nono_keywords_in_filename = varargin{1};
+%     search_method = varargin{find(strcmp(varargin,'method')==1)+1};
+%     char_idx = varargin{end};
+% else
+%     fprintf('WARNING: Missing arguments to find_sub_ids function.')
+% end
+
+
 if nargin == 3
-    nono_keywords_in_filename = {'%%€264#&#%(/()&%€#!'}; %random string
     search_method = 'auto';
-elseif nargin == 4
-    nono_keywords_in_filename = varargin{1};
-    search_method = 'auto';
-elseif ismember('method',varargin) && nargin == 6
-    nono_keywords_in_filename = {'%%€264#&#%(/()&%€#!'}; %random string
-    search_method = varargin{find(strcmp(varargin,'method')==1)+1};
-    char_idx = varargin{end};
-elseif ismember('method',varargin) && nargin == 7
-    nono_keywords_in_filename = varargin{1};
-    search_method = varargin{find(strcmp(varargin,'method')==1)+1};
-    char_idx = varargin{end};
+    varargin_chars = {};
 else
-    fprintf('WARNING: Missing arguments to find_sub_ids function.')
+    idx = cellfun(@(c) ischar(c), varargin);
+    varargin_chars = varargin(idx);
 end
+
+
+if ismember('nono_keyword',varargin_chars)
+    nono_keywords_in_filename = varargin{find(strcmp(varargin,'nono_keyword')==1)+1};
+end
+
+if ismember('method',varargin_chars) 
+    search_method = varargin{find(strcmp(varargin,'method')==1)+1};
+    
+    if strcmp(search_method,'manual')
+        char_idx_start = varargin{end-1};
+        char_idx_stop = varargin{end};
+    end
+end
+
 
 
 if isstruct(data_dir)
@@ -52,8 +76,14 @@ for s = 1:length(ses)
     bdf_file_folders.(ses{s}) = folders;
     bdf_fullfile.(ses{s}) = strcat(folders,bdf_file_names.(ses{s}));
     
-    nono_bdf_file_idx = contains(bdf_file_names.(ses{s}),nono_keywords_in_filename);
-    sub.(ses{s}) = cell(1,sum(not(nono_bdf_file_idx)));
+    if ismember('nono_keyword',varargin_chars)
+        nono_bdf_file_idx = contains(bdf_file_names.(ses{s}),nono_keywords_in_filename);
+        sub.(ses{s}) = cell(1,sum(not(nono_bdf_file_idx)));
+    else
+        nono_bdf_file_idx = logical(zeros(1,length(bdf_file_names.(ses{s}))));
+        sub.(ses{s}) = cell(1,length(bdf_file_names.(ses{s})));
+    end
+    
     bdf_file_split = cellfun(@(x) split(x,{'subject','sub','_','-','.'}),bdf_file_names.(ses{s}),'UniformOutput',0);
     for ii = 1:length(bdf_file_names.(ses{s}))
         if strcmp(search_method,'auto')
@@ -74,8 +104,15 @@ for s = 1:length(ses)
             end
         end
     end
-end
+    
+    if ismember('id_trans',varargin_chars)
+        id_trans = varargin{find(strcmp(varargin,'id_trans')==1)+1};
+        sub.(ses{s}) = cellfun(@(x) id_trans(x), sub.(ses{s}),'UniformOutput',0);
+    end
+    
+    
+end %ses loop
 
 
-end
+end %function
 

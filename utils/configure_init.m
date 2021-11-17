@@ -28,7 +28,7 @@ if isfield(init,'sub') && isfield(init,'sub_files')
 elseif isfield(init,'data_dir')
     %define sessions, subjects and their data_files (in this case the data_files are bdf files)
     %varargin is the arguments that was parsed to this script, e.i. bids_dir and potentially single subject id and session
-    [input.sub,input.ses,input.bdf_file_names,input.bdf_file_folders] = define_sub_ses_bdf(init.data_dir, init.data_file, init.IDs, init.varargin, init.nono_keywords_in_filename);
+    [input.sub,input.ses,input.bdf_file_names,input.bdf_file_folders] = define_sub_ses_bdf(init);
 else
     assert(isfield(init,'data_dir')~=1,'ERROR: please specify either data_dir or sub and sub_files to init struct')
 end

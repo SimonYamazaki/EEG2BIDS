@@ -40,9 +40,10 @@ init.task = 'MMN';
 %be a struct with the fieldnames corresponding to the session names
 % - If no sessions are needed let data_dir be a character array with the
 %path to the data_dir
-% - If data is not located in the same folder refer to "Manually specifying
-%data files" below and comment/remove definitions of init.data_dir,
-%init.data_file, init.nono_keywords_in_filename, init.id_search_method
+% - If data is not located in the same folder or the subject ids cannot be 
+%extracted from file names refer to "Manually specifying data files" below 
+%and comment/remove definitions of init.data_dir, init.data_file, 
+%init.nono_keywords_in_filename, init.id_search_method and init.id_trans
 init.data_dir.via11 = '/home/simonyj/EEG_MMN';
 init.data_dir.via15 = '/home/simonyj/EEG_MMN';
 init.bids_dir = varargin{1}; %dont change this! bids_dir is parsed as the first input in the function 
@@ -64,6 +65,10 @@ init.nono_keywords_in_filename = {'Flanker','ASSR'};
 %extracted from data_file
 % - if the subject id can not be extracted from the file name, refer to 
 %"Manually specifying data files" below
+% - the format of the ids extracted from the filename will be the format
+%used for subject ids throughout the bids dataset 
+% - if the format needs a transformation refer to the "Define a transformation
+%from the extracted ids" below
 % - must be a cell array with 'manual' or 'auto' as the first element
 % - the 'auto' method will use an automatic id detection 
 % - if the 'manual' method is specified, the second element in the cell array
@@ -73,11 +78,21 @@ init.nono_keywords_in_filename = {'Flanker','ASSR'};
 %example: init.id_search_method = {'manual',1:3}; will extract '009' from filename 009_mmn.bdf
 init.id_search_method = {'auto'};
 
+%Define a transformation of the extracted ids 
+% - OPTIONAL
+% - if the id extracted from the file name is not the desired id format 
+%define a transformation as a function handle below
+init.id_trans = @(x) sprintf('%03s',x); %transforms '9' to '009' and '34' to '034' while also transforming '009' to '009'
+
 
 %Manually specifying data files
 % - OPTIONAL
-% - if subject ids cant be extracted from data_file, add ids and the
-%corresponding file paths here
+% - if subject ids cant be extracted from data_file, add IDs and the
+%corresponding file paths here. 
+% - init.sub and init.sub_files should have same length, that is each file
+%path must have a corresponding id. For mulitple files from one subject repeat 
+%the subject id. 
+% - the format of IDs defined here will be the ID format in your bids_dir
 % - Do not define these structs if data_dir and data_file is defined
 %init.sub.via11 = {'009'  '146'  '302'};
 %init.sub_files.via11 = {'/path/to/file1.bdf','/path/to/file2.bdf','/path/to/file3.bdf'};
@@ -164,7 +179,7 @@ init.events_in_sub_dir = true; %false -> events.json will be located in bids_dir
 
 %General information to be put into dataset_description.json file
 % - dataset_description.json should always be written unless multiple tasks 
-%are combined into one bids_dir
+%are combined into one bids_dir, then only write it for the first task
 init.dataset_description.BIDSVersion = '1.6'; 
 init.dataset_description.Name = init.bids_dataset_name;
 init.dataset_description.DatasetType = 'raw'; 
@@ -178,7 +193,7 @@ init.participants_var_txt = fullfile(init.data_dir.via11,'participants_variables
 
 %extra notes to go into events.json as a field called "extra_notes"
 % - OPTIONAL
-init.extra_notes = ' The variables from subject_*SUB_ID*_MMN_triggers.mat files are added to the events.tsv files as start_sample -> start_sample, rand_ISI -> rand_ISI, mmn-codes -> conditionlabels.';
+init.extra_notes = ' The variables from subject_{SUB_ID}_MMN_triggers.mat files are added to the events.tsv files as start_sample -> start_sample, rand_ISI -> rand_ISI, mmn-codes -> conditionlabels.';
 
 %configure the initialization 
 init.varargin = varargin;

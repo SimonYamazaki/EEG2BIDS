@@ -3,8 +3,11 @@
 Notes: 
 - only works for files that can be read by fieldtrip. Currently only tested for .bdf files.
 - assumes access to a slurm batch system with the command ```sbatch```
+- ensures bids version 1.6 compliance 
 - currently only EEG2BIDS_MMN.m is up to date, thus for examples refer ONLY to this file. 
 - ```EEG2BIDS_template.m``` is not up to date either 
+- for any questions write an email - simonyj@drcmr.dk
+
 
 ## How to make a BIDS compliant EEG dataset
 
