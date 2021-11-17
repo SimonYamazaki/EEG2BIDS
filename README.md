@@ -45,3 +45,7 @@ If nothing is outputted from your matlab script in the .txt file in ```/cluster_
 
 (4). If any source data or derivative data should be added to the BIDS directory make a ```EEG2BIDS_*YOUR-TASK*_derivatives.m``` or ```EEG2BIDS_*YOUR-TASK*_sourcedata.m``` file.
 
+
+## How to manually write a json file in your script
+
+

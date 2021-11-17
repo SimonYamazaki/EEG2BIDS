@@ -6,9 +6,29 @@ if not(isfolder(init.bids_dir))
     mkdir(init.bids_dir)
 end
 
+if isfield(init,'participant_id_trans')
+    init.IDs_cell = cell(1,length(init.IDs));
+    
+    for ii = 1:length(init.IDs)
+        if iscell(init.IDs)
+            init.IDs_cell{ii} = init.participant_id_trans(init.IDs{ii});
+        elseif isnumeric(init.IDs)
+            init.IDs_cell{ii} = init.participant_id_trans(init.IDs(ii));
+        else
+            assert( iscell(init.IDs) || isnumeric(init.IDs),'init.IDs should be a numeric array or a cell array' )
+        end
+    end
+
+    init.IDs = init.IDs_cell;
+end
+
+
 %read instructions into cell 
 if isfield(init, 'instructions_txt')
     input.InstructionsC = read_txt(init.instructions_txt);
+    if length(input.InstructionsC) > 1
+        input.InstructionsC = {[input.InstructionsC{:}]};
+    end
 end
 
 %variables that are changed in the loop in certain cases
@@ -35,7 +55,7 @@ end
 
 %get subjects with the additional files that was specified in the variable "must_exist_files"
 if isfield(init,'must_exist_files')
-    [input.subs_with_all_files, input.subs_with_additional_files, additional_file_names] = search_must_exist_files(init.data_dir,init.IDs,init.must_exist_files);
+    [input.subs_with_all_files, input.subs_with_additional_files, additional_file_names] = search_must_exist_files(init.data_dir, init.IDs, init.must_exist_files, init.must_exist_files_id_search, init.id_from_folder);
     cmp_and_print_subs_with_file(input.sub, input.subs_with_additional_files, init.must_exist_files, input.ses) % compare the subjects to be moved to the bids_dir with the subjects that has the additional files. This function also prints the comparison.
 end
 

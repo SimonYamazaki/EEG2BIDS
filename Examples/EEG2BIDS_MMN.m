@@ -76,6 +76,7 @@ init.nono_keywords_in_filename = {'Flanker','ASSR'};
 %file name string, that is the whole file name and not data_file. Assumes
 %that subject ids is extracted from the same character indexes in all files
 %example: init.id_search_method = {'manual',1:3}; will extract '009' from filename 009_mmn.bdf
+init.id_from_data_file_folder = false;
 init.id_search_method = {'auto'};
 
 %Define a transformation of the extracted ids 
@@ -111,8 +112,10 @@ init.ID_prefix = 'via';
 % - currently searches data_dir for these files
 % - EXEPTION: if there are sessions without the need of must_exist_files, then
 %simply dont define the field of that session in must_exist_files
-init.must_exist_files.via11 = {'*_triggers.mat'}; 
-init.must_exist_files.via15 = {'*_triggers.mat'}; 
+init.must_exist_files.via11 = {'/home/simonyj/EEG_MMN/*_triggers.mat'};  %'/home/simonyj/EEG_MMN/**/*_triggers.mat'
+init.must_exist_files.via15 = {'/home/simonyj/EEG_MMN/*_triggers.mat'}; 
+init.id_from_folder = true; %false -> extracts id from filename
+init.must_exist_files_id_search = {'manual',1:3};
 
 
 %Search pattern for files that must exist to determine existing subjects in BIDS directory
@@ -134,21 +137,20 @@ init.files_checked.via15 = init.files_checked.via11;
 init.sub_info_table_path = '/mnt/projects/VIA11/database/VIA11_allkey_160621.csv';
 init.sub_info_table = readtable(init.sub_info_table_path); %read the table
 
-%Get subject ids coloum from the sub_info_table table. Each element in this 
-%coloumn must be a unique identifier for that particular subject.
-init.IDs_col = init.sub_info_table.('famlbnr'); %keep this intermediate step
+%Get subject ids coloum from sub_info_table. 
+% - each element in the coloumn must be a unique identifier a subject
+% - remember to add a transformation to the same format as the extracted 
+%subject ids or the ids specified in "manually specifying data files" if
+%the format of subject ids are different in the table
+init.IDs = init.sub_info_table.('famlbnr'); %this column of ids are double precision integers
+init.participant_id_trans = @(x) sprintf('%03s',num2str(x)); %transforms a double precision integer 9 to '009' and 34 to '034'
 
-%Transform the IDs from sub_info_table to the character arrays that is expected 
-%from the subject ID extraction of file names. If data files were manually 
-%specified, then transform the subject IDs from the sub_info_table to the 
-%format of the subject IDs specified in init.sub
-% - example: if the ID coloum in sub_info_table is integers, but you expect
-%character arrays of leading zeros transformation should be as below:
-init.IDs = cellstr(num2str(init.IDs_col,'%03d')); 
 
+%Coloumns to include from sub_info_table
 % - only include these participant info variables (columns) in participants.tsv
 % - if no variables are listed, all variables are added to the participants.tsv
 init.participant_info_include = {'MRI_age_v11', 'Sex_child_v11','HighRiskStatus_v11'};
+
 
 %Path to stimulation files to include in /stimuli directory in bids_dir
 % - OPTIONAL

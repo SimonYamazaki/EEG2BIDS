@@ -1,6 +1,17 @@
-function [subs_with_all_files,subs_with_files,additional_file_names] = search_must_exist_files(data_dir,IDs,must_exist_files)
+function [subs_with_all_files,subs_with_files,additional_file_names] = search_must_exist_files(data_dir,IDs,must_exist_files,must_exist_files_id_search,id_from_folder)
 %UNTITLED5 Summary of this function goes here
 %   Detailed explanation goes here
+inputs_to_find_sub_ids = {};
+inputs_to_find_sub_ids{end+1} = 'id_from_folder'; 
+inputs_to_find_sub_ids{end+1} = id_from_folder;
+
+inputs_to_find_sub_ids{end+1} = 'method';
+search_method = must_exist_files_id_search{1};
+inputs_to_find_sub_ids{end+1} = search_method;
+if strcmp(search_method,'manual')
+    char_idx = must_exist_files_id_search{2};
+    inputs_to_find_sub_ids{end+1} = char_idx;
+end
 
 if isstruct(must_exist_files)
     ses = fieldnames(must_exist_files);
@@ -20,9 +31,22 @@ for s = 1:length(ses)
             must_exist_files_struct = rmfield(must_exist_files_tmp, ses_to_rm);
         end
         
-        %must_exist_file_fieldname_cell = cellfun(@(x) split(x,{'.','*','-','_'}),{must_exist_files_struct.(ses{s})},'UniformOutput',0);
-        %must_exist_file_fieldname = strcat(must_exist_file_fieldname_cell{f}{end-1},num2str(f));
-        [subs_with_additional_files.(strcat('file',num2str(f))),additional_file_names.(strcat('file',num2str(f)))] = find_sub_ids(data_dir_single_ses, must_exist_files_struct, IDs);
+        %[subs_with_additional_files.(strcat('file',num2str(f))),additional_file_names.(strcat('file',num2str(f)))] = find_sub_ids(data_dir_single_ses, must_exist_files_struct, IDs, inputs_to_find_sub_ids{:});
+        folder = must_exist_files_struct.(ses{s}); %must_exist_files.(ses{s});
+        while ismember('*',folder) == true
+            [folder,filename,ext] = fileparts(folder);
+        end
+        
+        data_dir_single_ses.(ses{s}) = folder;
+        
+        path_split=split(must_exist_files_struct.(ses{s}),folder);
+        file_pattern.(ses{s}) = path_split{2};
+        
+        if s>1
+            file_pattern = rmfield(file_pattern, ses_to_rm);
+        end
+        
+        [subs_with_additional_files.(strcat('file',num2str(f))),additional_file_names.(strcat('file',num2str(f)))] = find_sub_ids(data_dir_single_ses, file_pattern, IDs, inputs_to_find_sub_ids{:});
         subs_with_files.(ses{s}).(strcat('file',num2str(f))) = subs_with_additional_files.(strcat('file',num2str(f))).(ses{s});
     end
 

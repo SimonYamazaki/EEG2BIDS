@@ -17,6 +17,9 @@ if isfield(init,'id_trans')
     inputs_to_find_sub_ids{end+1} = init.id_trans;
 end
 
+inputs_to_find_sub_ids{end+1} = 'id_from_folder';
+inputs_to_find_sub_ids{end+1} = init.id_from_data_file_folder;
+
 if isfield(init,'id_search_method')
     inputs_to_find_sub_ids{end+1} = 'method';
     search_method = init.id_search_method{1};

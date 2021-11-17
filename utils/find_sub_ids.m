@@ -2,30 +2,6 @@ function [sub,bdf_file_names,bdf_file_folders] = find_sub_ids(data_dir, file_pat
 %UNTITLED3 Summary of this function goes here
 %   Detailed explanation goes here
 
-
-% data_dir = varargin{1};
-% file_patterns = varargin{2};
-% via_id = varargin{3};
-
-% if nargin == 3
-%     nono_keywords_in_filename = {'%%€264#&#%(/()&%€#!'}; %random string
-%     search_method = 'auto';
-% elseif nargin == 4
-%     nono_keywords_in_filename = varargin{1};
-%     search_method = 'auto';
-% elseif ismember('method',varargin) && nargin == 6
-%     nono_keywords_in_filename = {'%%€264#&#%(/()&%€#!'}; %random string
-%     search_method = varargin{find(strcmp(varargin,'method')==1)+1};
-%     char_idx = varargin{end};
-% elseif ismember('method',varargin) && nargin == 7
-%     nono_keywords_in_filename = varargin{1};
-%     search_method = varargin{find(strcmp(varargin,'method')==1)+1};
-%     char_idx = varargin{end};
-% else
-%     fprintf('WARNING: Missing arguments to find_sub_ids function.')
-% end
-
-
 if nargin == 3
     search_method = 'auto';
     varargin_chars = {};
@@ -43,11 +19,14 @@ if ismember('method',varargin_chars)
     search_method = varargin{find(strcmp(varargin,'method')==1)+1};
     
     if strcmp(search_method,'manual')
-        char_idx_start = varargin{end-1};
-        char_idx_stop = varargin{end};
+        char_idx = varargin{end};
     end
 end
 
+
+if ismember('id_from_folder',varargin_chars)
+    id_from_folder = varargin{find(strcmp(varargin,'id_from_folder')==1)+1};
+end
 
 
 if isstruct(data_dir)
@@ -84,7 +63,14 @@ for s = 1:length(ses)
         sub.(ses{s}) = cell(1,length(bdf_file_names.(ses{s})));
     end
     
-    bdf_file_split = cellfun(@(x) split(x,{'subject','sub','_','-','.'}),bdf_file_names.(ses{s}),'UniformOutput',0);
+    if id_from_folder
+        file_folders = cellfun(@fileparts, bdf_fullfile.(ses{s}),'UniformOutput',0);
+        [root_folder,desired_folder.(ses{s})] = cellfun(@fileparts, file_folders, 'UniformOutput', false);
+        bdf_file_split = cellfun(@(x) split(x,{'subject','sub','_','-','.'}),desired_folder.(ses{s}),'UniformOutput',0);
+    else
+        bdf_file_split = cellfun(@(x) split(x,{'subject','sub','_','-','.'}),bdf_file_names.(ses{s}),'UniformOutput',0);
+    end
+    
     for ii = 1:length(bdf_file_names.(ses{s}))
         if strcmp(search_method,'auto')
             if ~nono_bdf_file_idx(ii)
@@ -97,7 +83,12 @@ for s = 1:length(ses)
             
         elseif strcmp(search_method,'manual')
             if ~nono_bdf_file_idx(ii)
-                sub_bdf_file = bdf_file_names.(ses{s}){ii};
+                if id_from_folder
+                    sub_bdf_file = desired_folder.(ses{s}){ii};
+                else
+                    sub_bdf_file = bdf_file_names.(ses{s}){ii};
+                end
+
                 sub.(ses{s}){ii} = sub_bdf_file(char_idx);
             else
                 fprintf('WARNING: The subject file %s will NOT moved to the BIDS dataset. A subject directory is not made in the BIDS dataset for the subject which this file belongs to\n',bdf_fullfile.(ses{s}){ii})
