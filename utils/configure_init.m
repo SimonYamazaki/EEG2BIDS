@@ -50,7 +50,7 @@ elseif isfield(init,'data_dir')
     %varargin is the arguments that was parsed to this script, e.i. bids_dir and potentially single subject id and session
     [input.sub,input.ses,input.bdf_file_names,input.bdf_file_folders] = define_sub_ses_bdf(init);
 else
-    assert(isfield(init,'data_dir')~=1,'ERROR: please specify either data_dir or sub and sub_files to init struct')
+    assert(isfield(init,'data_dir')~=1,'please specify either data_dir or sub and sub_files to init struct')
 end
 
 %get subjects with the additional files that was specified in the variable "must_exist_files"
@@ -72,7 +72,7 @@ for s = 1:length(input.ses)
         %print warning if subjects are excluded
         if ~isempty(input.excluded_subs)
             fprintf('WARNING: Subject %s will not be included in the BIDS directory as they are missing a "must_exist_file" ',input.excluded_subs{:})
-            fprintf('in session %s\n',input.ses{s})
+            fprintf('WARNING: in session %s\n',input.ses{s})
             input.bdf_file_names.(input.ses{s}) = input.bdf_file_names.(input.ses{s})(~ismember(input.sub.(input.ses{s}),input.subs_with_all_files.(input.ses{s}))); %the exlusion of subjects which are already existing in the bids_dir
             input.sub.(input.ses{s}) = input.sub.(input.ses{s})(ismember(input.sub.(input.ses{s}),input.subs_with_all_files.(input.ses{s}))); %the exlusion of the subjects who does not have the must_exist_files
         end

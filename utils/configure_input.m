@@ -1,6 +1,4 @@
 function cfg = configure_input(cfg,input)
-%UNTITLED4 Summary of this function goes here
-%   Detailed explanation goes here
     
     if isfield(input.init,'dataset_description')
         input.init.write_dataset_description = true;

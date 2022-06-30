@@ -16,6 +16,11 @@ for s = 1:length(ses)
         elseif all(ismember(sub.(ses{s}),subs_with_file)) && length(sub.(ses{s}))>1
             fprintf('All subjects with data files also have %s files in session %s\n',mefn,ses{s})
         elseif any(not(ismember(sub.(ses{s}),subs_with_file)))
+            %subsid = sub.(ses{s}){~ismember(sub.(ses{s}),subs_with_file)};
+           % 
+            %for i = 1:length(subsid)
+            %    fprintf('WARNING: Subject %s has data file but are missing a %s file in session %s\n',subsid(i),mefn,ses{s} )
+            %end
             fprintf('WARNING: Subject %s has data file but are missing a %s file in session %s\n',sub.(ses{s}){~ismember(sub.(ses{s}),subs_with_file)},mefn,ses{s} )
         elseif any(not(ismember(subs_with_file,sub.(ses{s}))))
             fprintf('WARNING: Subject %s has %s file but are missing data file in session %s\n',subs_with_file{~ismember(subs_with_file,sub.(ses{s}))},mefn,ses{s} )

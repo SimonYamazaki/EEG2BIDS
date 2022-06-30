@@ -45,9 +45,9 @@ for jj = 1:length(ses)
         
         if any(non_described_var_idx)
             non_described_vars.(ses{jj}).(strcat('sub_',sub.(ses{jj}){ii})) = var_names(non_described_var_idx);
-            fprintf('Variable description missing in the file %s for the variable(s) ',tsv_path{1})
-            fprintf('%s, ',non_described_vars.(ses{jj}).(strcat('sub_',sub.(ses{jj}){ii})){:})
-            fprintf('for subject %s in session %s\n',sub.(ses{jj}){ii},ses{jj})
+            fprintf('WARNING: Variable description missing in the file %s for the variable(s) ',tsv_path{1})
+            fprintf('WARNING: %s, ',non_described_vars.(ses{jj}).(strcat('sub_',sub.(ses{jj}){ii})){:})
+            fprintf('WARNING: for subject %s in session %s\n',sub.(ses{jj}){ii},ses{jj})
         end
     end
 end

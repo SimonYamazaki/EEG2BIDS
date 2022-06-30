@@ -1,4 +1,6 @@
 function EEG2BIDS_MMN(varargin)
+%The first input to function is the bids_dir, that is the name of the 
+%new directory that will be made 
 
 %add paths to relevant toolboxes
 addpath('/home/simonyj/EEG_flanker/fieldtrip/')
@@ -60,21 +62,26 @@ init.data_file.via15 = '*_MMN.bdf';
 % - if this keyword is found, the file will not be moved to BIDS dataset
 init.nono_keywords_in_filename = {'Flanker','ASSR'};
 
+init.bids_creation_dir.via11 = '/home/simonyj/EEG_MMN';
+
 %Specify method to extract subject id from file name
 % - assumes that the subject ids to include in the bids dataset can be 
-%extracted from data_file
+%extracted from data_file names
 % - if the subject id can not be extracted from the file name, refer to 
 %"Manually specifying data files" below
 % - the format of the ids extracted from the filename will be the format
 %used for subject ids throughout the bids dataset 
 % - if the format needs a transformation refer to the "Define a transformation
 %from the extracted ids" below
-% - must be a cell array with 'manual' or 'auto' as the first element
+% - id_search_method must be a cell array with 'manual' or 'auto' as the first element
 % - the 'auto' method will use an automatic id detection 
 % - if the 'manual' method is specified, the second element in the cell array
-%should be a double array with character indexes for the subject id in the 
-%file name string, that is the whole file name and not data_file. Assumes
-%that subject ids is extracted from the same character indexes in all files
+%of id_search_method should be a double array with character indexes for the  
+%subject id in the file name string - from the whole file name string and not 
+% data_file. Assumes that subject ids is extracted from the same character indexes 
+%in all files. Note: the file name string is not an input here but found
+%from the data_file names. If this method is not applicable for you,
+%instead refer to the "Manually specifying data files" below.
 %example: init.id_search_method = {'manual',1:3}; will extract '009' from filename 009_mmn.bdf
 init.id_from_data_file_folder = false;
 init.id_search_method = {'auto'};
@@ -100,25 +107,27 @@ init.id_trans = @(x) sprintf('%03s',x); %transforms '9' to '009' and '34' to '03
 %init.sub.via15 = {'009'  '146'  '302'};
 %init.sub_files.via15 = {'/path/to/file1.bdf','/path/to/file2.bdf','/path/to/file3.bdf'};
 
-%A subject ID prefix for subject folders in bids_dir
+%A subject ID prefix to be added for subject folders in bids_dir
 % - OPTIONAL
-% - for a subject folder with name sub-via009 the ID_prefix should be 'via'
+% - for a subject folder with name "sub-via009" the ID_prefix should be 'via'
 init.ID_prefix = 'via';
 
 %Search pattern for other files that must exist along the data_file
 % - OPTIONAL
 % - follows the same structure as data_dir with respect to sessions
-% - field names must be identical to data_dir field names
-% - currently searches data_dir for these files
+% - field names of the structs below must be identical to data_dir field names
+% - Must also specify where to find the id corresponding to the must_exist_files
 % - EXEPTION: if there are sessions without the need of must_exist_files, then
 %simply dont define the field of that session in must_exist_files
 init.must_exist_files.via11 = {'/home/simonyj/EEG_MMN/*_triggers.mat'};  %'/home/simonyj/EEG_MMN/**/*_triggers.mat'
 init.must_exist_files.via15 = {'/home/simonyj/EEG_MMN/*_triggers.mat'}; 
-init.id_from_folder = true; %false -> extracts id from filename
-init.must_exist_files_id_search = {'manual',1:3};
+init.id_from_folder = false; %false -> extracts id from filename, true -> find it from folder name
+init.must_exist_files_id_search = {'manual',9:11}; %from either directory or file name
 
 
 %Search pattern for files that must exist to determine existing subjects in BIDS directory
+% - these files may vary depending on the task and eeg file format,
+% however, must be specified!
 % - follows the same structure as data_dir with respect to sessions
 % - field names must be identical to data_dir field names
 % - must include all the sessions defined in data_dir
@@ -131,17 +140,19 @@ init.files_checked.via15 = init.files_checked.via11;
 
 %Parse a subject info table from database for participant information.
 % - info goes into participants.tsv
-% - assumes the table has a column of subject id, where rows consists of 
+% - assumes the table has a column of subject ids, and rows consisting of 
 %participant info for a particular subject id 
 % - assumes that participant info is identical for all tasks in bids_dir
 init.sub_info_table_path = '/mnt/projects/VIA11/database/VIA11_allkey_160621.csv';
 init.sub_info_table = readtable(init.sub_info_table_path); %read the table
 
 %Get subject ids coloum from sub_info_table. 
-% - each element in the coloumn must be a unique identifier a subject
+% - each element in the coloumn must be a unique identifier of a subject
 % - remember to add a transformation to the same format as the extracted 
 %subject ids or the ids specified in "manually specifying data files" if
 %the format of subject ids are different in the table
+% - participant_id_trans is not needed if the coloumn in sub_info_table is
+%already encoded in the right way
 init.IDs = init.sub_info_table.('famlbnr'); %this column of ids are double precision integers
 init.participant_id_trans = @(x) sprintf('%03s',num2str(x)); %transforms a double precision integer 9 to '009' and 34 to '034'
 
@@ -189,11 +200,11 @@ init.dataset_description.EthicsApprovals = {'The local Ethical Committee (Protoc
 
 %txt file paths to be read
 % - OPTIONAL
-init.event_txt_file = fullfile(init.data_dir.via11,'MMN_events.txt'); % txt file with information about events but not the events itself. This includes trigger values or notes about the events in general. Should have a VERY specific format, check other events.txt in github repo
-init.instructions_txt = fullfile(init.data_dir.via11,'MMN_instructions.txt'); %txt file with instructions. Should be instructions combined in one single line of a txt file. 
-init.participants_var_txt = fullfile(init.data_dir.via11,'participants_variables.txt'); %txt file with a description about the variables (columns) in participants.tsv. This could also include levels for categorical variables or units for variables. Has specific format, check example file on github repo.
+init.event_txt_file = fullfile(init.bids_creation_dir.via11,'MMN_events.txt'); % txt file with information about events but not the events itself. This includes trigger values or notes about the events in general. Should have a VERY specific format, check other events.txt in github repo
+init.instructions_txt = fullfile(init.bids_creation_dir.via11,'MMN_instructions.txt'); %txt file with instructions. Should be instructions combined in one single line of a txt file. 
+init.participants_var_txt = fullfile(init.bids_creation_dir.via11,'participants_variables.txt'); %txt file with a description about the variables (columns) in participants.tsv. This could also include levels for categorical variables or units for variables. Has specific format, check example file on github repo.
 
-%extra notes to go into events.json as a field called "extra_notes"
+%Extra notes to go into events.json as a field called "extra_notes"
 % - OPTIONAL
 init.extra_notes = ' The variables from subject_{SUB_ID}_MMN_triggers.mat files are added to the events.tsv files as start_sample -> start_sample, rand_ISI -> rand_ISI, mmn-codes -> conditionlabels.';
 
@@ -207,6 +218,7 @@ input = configure_init(init);
 %to infer whether general bids files should be written everytime this script
 %is run.
 
+
 %% Generate BIDS structure and files
 % CHANGES NEEDED IN THIS SECTION
 
@@ -216,6 +228,8 @@ input = configure_init(init);
 % https://github.com/SimonYamazaki/fieldtrip/blob/master/data2bids.m
 % which is a modified version of: https://github.com/fieldtrip/fieldtrip/blob/master/data2bids.m
 
+% The RECOMMENDED comment is inputs that are recommended to be filled by
+% the bids specification - thus not mandatory.
 
 %loop over sessions and subjects to make bids_dir
 for sesindx=1:numel(input.ses)
@@ -270,11 +284,12 @@ for sesindx=1:numel(input.ses)
     
     %%%%%%%  HEADER  %%%%%%%%%  
     % - OPTIONAL
-    %this part can be removed if no additional channel info is needed
-    %first the header of the eeg file is read and then additional 
-    %channel information is added. Modififying the cfg.hdr will not 
-    %change anything in the eeg file, only in the custom header struct to 
-    %be parsed to the function that generates the bids files
+    %this part can be removed if no additional channel info is needed from
+    %the header of the eeg files. First the header of the eeg file is read 
+    %and then additional channel information is added. Modififying the 
+    %cfg.hdr will not change anything in the eeg file, only in the custom 
+    %temporary header struct created here which is to be parsed to the 
+    %function that generates the bids files.
     % - look in the channels.tsv to see what rows need extra information
     
     %read the header of bdf_file
@@ -294,16 +309,20 @@ for sesindx=1:numel(input.ses)
 
     
     
-    %%%%%%%%  EVENTS %%%%%%%%  - OPTIONAL
+    %%%%%%%%  EVENTS %%%%%%%% 
+    % - OPTIONAL
     %This part can be removed if no additional events should be added to
     %the events.tsv. If this part is removed, the only things that go into
     %the events.tsv file is the events read in the eeg file header.
-    %first the header of the eeg file is read and then additional 
+    %First the header of the eeg file is read and then additional 
     %events can be added. Modififying the event_struct will not 
-    %change anything in the eeg file, only in the event_struct that is 
-    %parsed to the function that generates the bids files
+    %change anything in the eeg file, only in the temporarily created 
+    %event_struct that is parsed to the function that generates the bids files
+    %Note: the example below might not be make any sense for you depdending
+    %on the events present in your task. Please study what the event_struct
+    %looks like before adding things to it.
     
-    if init.include_events_tsv %only include the events.tsv file if specified in the init struct
+    if init.include_events_tsv %only include the events.tsv file if specified in the init struct above
 
         %read the events of the bdf file
         event_struct = ft_read_event(cfg.dataset);
@@ -375,8 +394,7 @@ for sesindx=1:numel(input.ses)
     end
     
     
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    %%%%%%% MAKING THE SUBJECT BIDS DATASET FOR THE SUBJECT IN LOOP %%%%%%% 
+    %%%%%%% MAKING BIDS DATASET FOR THE CURRENT SUBJECT IN LOOP %%%%%%% 
     
     %make bids dataset with the cfg struct
     data2bids(cfg);
@@ -428,9 +446,10 @@ for sesindx=1:numel(input.ses)
         fprintf('writing %s\n',cfg.event_json_file)
     end
     
+    %Keep the below if statement
     %make sure not to write events.json file more than once if it is to be
     %placed in bids_dir, e.i if sub-XXX is in file name the events.json 
-    %should not be written next iteration of subject loop as only one
+    %should not be written next iteration of subject loop as only ONE
     %should be made jf. the inheritance principle
     if ~contains(cfg.event_json_file, sprintf('sub-%s',cfg.sub))
         input.init.write_events = false;
@@ -467,6 +486,23 @@ if strcmp(input.run_mode,'new_BIDS')
 end
 
 
+%% Write a readme and .bidsignore file 
+% CHANGES NEEDED IN THIS SECTION
+% - RECOMMENDED
+
+if strcmp(input.run_mode,'new_BIDS')
+    %write a readme about extra information
+    fileID = fopen(fullfile(init.bids_dir,'README'),'a');
+    fprintf(fileID,'The EEG dataset includes 4 tasks performed in the following order: ASSR regular (first task), ASSR irregular (second task), Flanker (third task) and MMN (forth task)\n');
+    fclose(fileID);
+    
+    %write .bidsignore file for the BIDS validator
+    %.bidsignore file has same syntax as .gitignore
+    fileID = fopen(fullfile(init.bids_dir,'.bidsignore'),'a');
+    fprintf(fileID,'/cluster_submissions/'); %add lines to the .bidsignore file
+    fclose(fileID);
+end
+
 
 %% participants.json from .txt file
 %NO CHANGES NEEDED IN THIS SECTION
@@ -494,23 +530,6 @@ if strcmp(input.run_mode,'new_BIDS')
     cp_code2bids(init,code_file_paths)
 end
 
-
-%% Write a readme and .bidsignore file 
-% CHANGES NEEDED IN THIS SECTION
-% - RECOMMENDED
-
-if strcmp(input.run_mode,'new_BIDS')
-    %write a readme about extra information
-    fileID = fopen(fullfile(init.bids_dir,'README'),'a');
-    fprintf(fileID,'The EEG dataset includes 4 tasks performed in the following order: ASSR regular (first task), ASSR irregular (second task), Flanker (third task) and MMN (forth task)\n');
-    fclose(fileID);
-    
-    %write .bidsignore file for the BIDS validator
-    %.bidsignore file has same syntax as .gitignore
-    fileID = fopen(fullfile(init.bids_dir,'.bidsignore'),'a');
-    fprintf(fileID,'/cluster_submissions/'); %add lines to the .bidsignore file
-    fclose(fileID);
-end
 
 
 %% Print an ending statement
