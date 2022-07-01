@@ -79,12 +79,12 @@ for s = 1:length(input.ses)
     end
     
     %find existing subjects in the bids structure by searching for files_checked
-    input.existing_sub = find_existing_subs(init.bids_dir,init.files_checked,input.ses(s));
+    input.existing_sub = find_existing_subs(init, input.ses(s));
     
     if length(init.varargin)==1 %if only the bids_dir is parsed to this function, e.i. running this script for multiple subjects 
         input.bdf_file_names.(input.ses{s}) = input.bdf_file_names.(input.ses{s})(~ismember(input.sub.(input.ses{s}),input.existing_sub.(input.ses{s}))); %the exlusion of subjects which are already existing in the bids_dir
         input.sub.(input.ses{s}) = input.sub.(input.ses{s})(~ismember(input.sub.(input.ses{s}),input.existing_sub.(input.ses{s}))); %the exlusion of subjects which are already existing in the bids_dir
-
+        
         finished_ses(s) = isempty(input.sub.(input.ses{s})) && ~isempty(input.existing_sub.(input.ses{s})); %the sessions that are done
         ses_run(s) = ~isempty(input.sub.(input.ses{s})) && isempty(input.existing_sub.(input.ses{s})); %the sessions that should be run/started/created
         ses_add(s) = ~isempty(input.sub.(input.ses{s})) && ~isempty(input.existing_sub.(input.ses{s})); %the existing sessions with subjects to be added to

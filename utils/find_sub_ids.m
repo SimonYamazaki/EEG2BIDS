@@ -76,7 +76,11 @@ for s = 1:length(ses)
             if ~nono_bdf_file_idx(ii)
                 numeric_idx = cell2mat(cellfun(@(x) ~isnan(str2double(x)),bdf_file_split{ii},'UniformOutput',0));
                 db_idx = ismember(bdf_file_split{ii},IDs);
-                sub.(ses{s}){ii} = bdf_file_split{ii}{and(numeric_idx,db_idx)};
+                if any(db_idx)
+                    sub.(ses{s}){ii} = bdf_file_split{ii}{and(numeric_idx,db_idx)};
+                else
+                    fprintf('WARNING: The subject file %s will NOT moved to the BIDS dataset for session %s\n',bdf_fullfile.(ses{s}){ii},ses{s})
+                end
             else
                 fprintf('WARNING: The subject file %s will NOT moved to the BIDS dataset for session %s\n',bdf_fullfile.(ses{s}){ii},ses{s})
             end
@@ -101,7 +105,8 @@ for s = 1:length(ses)
         sub.(ses{s}) = cellfun(@(x) id_trans(x), sub.(ses{s}),'UniformOutput',0);
     end
     
-    
+    empty_sub_idx = logical(cell2mat(cellfun(@isempty, sub.(ses{s}),'UniformOutput',0)));
+    sub.(ses{s})(empty_sub_idx) = [];
 end %ses loop
 
 

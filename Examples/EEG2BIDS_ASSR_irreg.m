@@ -1,4 +1,4 @@
-function EEG2BIDS_ASSR_reg(varargin)
+function EEG2BIDS_ASSR_irreg(varargin)
 %The first input to function is the bids_dir, that is the name of the 
 %new directory that will be made
 %If this dataset should be included in an already existing
@@ -39,7 +39,7 @@ init.bids_dataset_name = 'VIA11_BIDS';
 % - The task that this script concerns
 % - Each task has a unique label that MUST only consist of letters and/or 
 %numbers. Other characters, including spaces and underscores, are not allowed
-init.task = 'ASSRreg';
+init.task = 'ASSRirreg';
 
 
 %Specify data directories
@@ -51,7 +51,7 @@ init.task = 'ASSRreg';
 %extracted from file names refer to "Manually specifying data files" below 
 %and comment/remove definitions of init.data_dir, init.data_file, 
 %init.nono_keywords_in_filename, init.id_search_method and init.id_trans
-init.data_dir.via11 = '/mrhome/simonyj/nobackup/###_ASSR_reg';
+init.data_dir.via11 = '/mrhome/simonyj/nobackup/###_ASSR_irreg';
 %init.data_dir.via15 = '/home/simonyj/EEG_MMN';
 init.bids_dir = varargin{1}; %dont change this! bids_dir is parsed as the first input in the function 
 
@@ -59,7 +59,7 @@ init.bids_dir = varargin{1}; %dont change this! bids_dir is parsed as the first 
 % - data_file follows the same structure as data_dir with respect to sessions
 % - field names must be identical to data_dir field names
 % - searches data_dir for data_file
-init.data_file.via11 = '*_ASSR_reg.bdf';
+init.data_file.via11 = '*_ASSR_irreg.bdf';
 %init.data_file.via15 = '*_MMN.bdf';
 
 %Keywords in the data_file name that should not be present
@@ -68,7 +68,7 @@ init.data_file.via11 = '*_ASSR_reg.bdf';
 % - this functionality looks for any substring, thus careful you dont
 % substring something that you want, i.e. if you want ASSR_irreg.bdf files,
 %and dont want ASSR_reg.bdf, dont just write 'reg' below, instead do '_reg'
-init.nono_keywords_in_filename = {'Flanker','MMN','irreg'};
+init.nono_keywords_in_filename = {'Flanker','MMN','_reg'}; 
 
 
 %Specify method to extract subject id from file name
@@ -171,7 +171,7 @@ init.participant_info_include = {'MRI_age_v11', 'Sex_child_v11','HighRiskStatus_
 
 %Path to stimulation files to include in /stimuli directory in bids_dir
 % - OPTIONAL
-init.stim_files.via11 = {'/home/simonyj/EEG_ASSR_reg/click_40_regular.wav'};
+%init.stim_files.via11 = {'/home/simonyj/EEG_ASSR_irreg/click_40_regular.wav'};
 %init.stim_files.via15 = {'/home/simonyj/EEG_MMN/std.wav','/home/simonyj/EEG_MMN/dev1.wav',...
 %            '/home/simonyj/EEG_MMN/dev2.wav','/home/simonyj/EEG_MMN/dev3.wav'};
 
@@ -205,9 +205,9 @@ init.dataset_description.EthicsApprovals = {'The local Ethical Committee (Protoc
 
 %txt file paths to be read
 % - OPTIONAL
-init.event_txt_file = fullfile('/home/simonyj/EEG_ASSR_reg','ASSR_events.txt'); % txt file with information about events but not the events itself. This includes trigger values or notes about the events in general. Should have a VERY specific format, check other events.txt in github repo
-init.instructions_txt = fullfile('/home/simonyj/EEG_ASSR_reg','ASSR_reg_instructions.txt'); %txt file with instructions. Should be instructions combined in one single line of a txt file. 
-%init.participants_var_txt = fullfile('/home/simonyj/EEG_ASSR_reg','participants_variables.txt'); %txt file with a description about the variables (columns) in participants.tsv. This could also include levels for categorical variables or units for variables. Has specific format, check example file on github repo.
+init.event_txt_file = fullfile('/home/simonyj/EEG_ASSR_irreg','ASSR_events.txt'); % txt file with information about events but not the events itself. This includes trigger values or notes about the events in general. Should have a VERY specific format, check other events.txt in github repo
+init.instructions_txt = fullfile('/home/simonyj/EEG_ASSR_irreg','ASSR_irreg_instructions.txt'); %txt file with instructions. Should be instructions combined in one single line of a txt file. 
+%init.participants_var_txt = fullfile('/home/simonyj/EEG_ASSR_irreg','participants_variables.txt'); %txt file with a description about the variables (columns) in participants.tsv. This could also include levels for categorical variables or units for variables. Has specific format, check example file on github repo.
 
 %Extra notes to go into events.json as a field called "extra_notes"
 % - OPTIONAL
@@ -336,34 +336,8 @@ for sesindx=1:numel(input.ses)
         fs = cfg.hdr.Fs;  %e.g. 4096
         delay = 38;
 
-        bdf_event_samples = [event_struct.sample];   
-        conditionlabels = cell(1,120);
-        conditionlabels{1} = 'click';
-        trl2(1,1)=round(bdf_event_samples(1)+(38/1000)*fs);
-        trl2(1,2)=round(bdf_event_samples(1)+1000+(38/1000)*fs); %the first two terms in this definition is arbitrary
-        table_sf{1} = input.bids_stim_file_name.(input.ses{sesindx}){1};
-
-        for k = 2:120
-            trl2(k,1)=round(trl2(k-1,1)+3*fs);
-            trl2(k,2)=round(trl2(k-1,2)+3*fs);
-            conditionlabels{k}='click';
-            table_sf{k} = input.bids_stim_file_name.(input.ses{sesindx}){1};
-        end
-
         bdf_event_table = struct2table(event_struct); 
-        type = repmat({'STATUS'},length(conditionlabels),1) ;
-        value = cell(length(conditionlabels),1);
-        offset = cell(length(conditionlabels),1); %keep this variable
-        duration = num2cell(ones(length(conditionlabels),1));
-        sample = trl2(:,1);
-
-        generated_event_table = table(type,sample,value,offset,duration);
-        event_table = [bdf_event_table;generated_event_table];
-
-        %event_table.stim_file = [cell(length(event_struct),1); repmat(bids_stim_file_name.(input.ses{sesindx})(1),length(conditionlabels),1)];
-        event_table.stim_file = [cell(length(event_struct),1); table_sf'];
-        event_table.delay = ones(length(event_struct)+length(conditionlabels),1)*delay/1000;
-        event_table.conditionlabel = [cell(length(event_struct),1); conditionlabels(:)];
+        event_table = [bdf_event_table];
 
         cfg.events = table2struct(event_table);
         cfg.keep_events_order = true; %should the events be sorted according to sample or should it keep the order in cfg.events?

@@ -2,6 +2,9 @@ function EEG2BIDS_MMN(varargin)
 %The first input to function is the bids_dir, that is the name of the 
 %new directory that will be made 
 
+% This function takes up to 3 inputs: '{bids_dir}','{subject id}','{session}'
+%only the first argument is mandatory
+
 %add paths to relevant toolboxes
 addpath('/home/simonyj/EEG_flanker/fieldtrip/')
 addpath('/home/simonyj/EEG_flanker/fieldtrip/fileio/')
@@ -46,8 +49,8 @@ init.task = 'MMN';
 %extracted from file names refer to "Manually specifying data files" below 
 %and comment/remove definitions of init.data_dir, init.data_file, 
 %init.nono_keywords_in_filename, init.id_search_method and init.id_trans
-init.data_dir.via11 = '/home/simonyj/EEG_MMN';
-init.data_dir.via15 = '/home/simonyj/EEG_MMN';
+init.data_dir.via11 = '/mrhome/simonyj/nobackup/###_MMN';
+%init.data_dir.via15 = '/home/simonyj/EEG_MMN';
 init.bids_dir = varargin{1}; %dont change this! bids_dir is parsed as the first input in the function 
 
 %Search pattern for data files in data_dir
@@ -55,14 +58,16 @@ init.bids_dir = varargin{1}; %dont change this! bids_dir is parsed as the first 
 % - field names must be identical to data_dir field names
 % - searches data_dir for data_file
 init.data_file.via11 = '*_MMN.bdf';
-init.data_file.via15 = '*_MMN.bdf';
+%init.data_file.via15 = '*_MMN.bdf';
 
 %Keywords in the data_file name that should not be present
 % - OPTIONAL
 % - if this keyword is found, the file will not be moved to BIDS dataset
+% - this functionality looks for any substring, thus careful you dont
+% substring something that you want, i.e. if you want ASSR_irreg.bdf files,
+%and dont want ASSR_reg.bdf, dont just write 'reg' below, instead do '_reg'
 init.nono_keywords_in_filename = {'Flanker','ASSR'};
 
-init.bids_creation_dir.via11 = '/home/simonyj/EEG_MMN';
 
 %Specify method to extract subject id from file name
 % - assumes that the subject ids to include in the bids dataset can be 
@@ -119,8 +124,8 @@ init.ID_prefix = 'via';
 % - Must also specify where to find the id corresponding to the must_exist_files
 % - EXEPTION: if there are sessions without the need of must_exist_files, then
 %simply dont define the field of that session in must_exist_files
-init.must_exist_files.via11 = {'/home/simonyj/EEG_MMN/*_triggers.mat'};  %'/home/simonyj/EEG_MMN/**/*_triggers.mat'
-init.must_exist_files.via15 = {'/home/simonyj/EEG_MMN/*_triggers.mat'}; 
+init.must_exist_files.via11 = {'/mrhome/simonyj/nobackup/###_MMN/*_triggers.mat'};  %'/home/simonyj/EEG_MMN/**/*_triggers.mat'
+%init.must_exist_files.via15 = {'/mrhome/simonyj/nobackup/###_MMN/*_triggers.mat'}; 
 init.id_from_folder = false; %false -> extracts id from filename, true -> find it from folder name
 init.must_exist_files_id_search = {'manual',9:11}; %from either directory or file name
 
@@ -135,7 +140,7 @@ init.must_exist_files_id_search = {'manual',9:11}; %from either directory or fil
 % subject folder
 init.files_checked.via11 = {sprintf('*task-%s_eeg.bdf',init.task),sprintf('*task-%s_eeg.json',init.task),...
                        sprintf('*task-%s_events.tsv',init.task),sprintf('*task-%s_channels.tsv',init.task)};
-init.files_checked.via15 = init.files_checked.via11;
+%init.files_checked.via15 = init.files_checked.via11;
 
 
 %Parse a subject info table from database for participant information.
@@ -167,8 +172,8 @@ init.participant_info_include = {'MRI_age_v11', 'Sex_child_v11','HighRiskStatus_
 % - OPTIONAL
 init.stim_files.via11 = {'/home/simonyj/EEG_MMN/std.wav','/home/simonyj/EEG_MMN/dev1.wav',...
             '/home/simonyj/EEG_MMN/dev2.wav','/home/simonyj/EEG_MMN/dev3.wav'};
-init.stim_files.via15 = {'/home/simonyj/EEG_MMN/std.wav','/home/simonyj/EEG_MMN/dev1.wav',...
-            '/home/simonyj/EEG_MMN/dev2.wav','/home/simonyj/EEG_MMN/dev3.wav'};
+%init.stim_files.via15 = {'/home/simonyj/EEG_MMN/std.wav','/home/simonyj/EEG_MMN/dev1.wav',...
+%            '/home/simonyj/EEG_MMN/dev2.wav','/home/simonyj/EEG_MMN/dev3.wav'};
 
 %Whether to include a scans.tsv file
 init.include_scans_tsv = true;
@@ -200,13 +205,13 @@ init.dataset_description.EthicsApprovals = {'The local Ethical Committee (Protoc
 
 %txt file paths to be read
 % - OPTIONAL
-init.event_txt_file = fullfile(init.bids_creation_dir.via11,'MMN_events.txt'); % txt file with information about events but not the events itself. This includes trigger values or notes about the events in general. Should have a VERY specific format, check other events.txt in github repo
-init.instructions_txt = fullfile(init.bids_creation_dir.via11,'MMN_instructions.txt'); %txt file with instructions. Should be instructions combined in one single line of a txt file. 
-init.participants_var_txt = fullfile(init.bids_creation_dir.via11,'participants_variables.txt'); %txt file with a description about the variables (columns) in participants.tsv. This could also include levels for categorical variables or units for variables. Has specific format, check example file on github repo.
+init.event_txt_file = fullfile('/home/simonyj/EEG_MMN','MMN_events.txt'); % txt file with information about events but not the events itself. This includes trigger values or notes about the events in general. Should have a VERY specific format, check other events.txt in github repo
+init.instructions_txt = fullfile('/home/simonyj/EEG_MMN','MMN_instructions.txt'); %txt file with instructions. Should be instructions combined in one single line of a txt file. 
+init.participants_var_txt = fullfile('/home/simonyj/EEG_MMN','participants_variables.txt'); %txt file with a description about the variables (columns) in participants.tsv. This could also include levels for categorical variables or units for variables. Has specific format, check example file on github repo.
 
 %Extra notes to go into events.json as a field called "extra_notes"
 % - OPTIONAL
-init.extra_notes = ' The variables from subject_{SUB_ID}_MMN_triggers.mat files are added to the events.tsv files as start_sample -> start_sample, rand_ISI -> rand_ISI, mmn-codes -> conditionlabels.';
+init.extra_notes = ' The variables from subject_{SUB_ID}_MMN_triggers.mat files are added to the events.tsv files as start_sample -> start_sample, rand_ISI -> rand_ISI, mmn-codes -> conditionlabels. Subject 025 had different event start value and 249 had none.';
 
 %configure the initialization 
 init.varargin = varargin;
@@ -337,10 +342,16 @@ for sesindx=1:numel(input.ses)
         % estimate the start of the first sound
         bdf_event_samples = [event_struct.sample];    
         start_idx = [event_struct.value]==65281;
+        if strcmp(input.sub.(input.ses{sesindx}){subindx},'025') %not(any(start_idx)) % this subject has another starting value
+            start_idx = [event_struct.value]==65288;
+        end
         empty_idx = cellfun(@isempty,{event_struct.value},'UniformOutput',1);
         timestart_idx = false(1,length(empty_idx));
         timestart_idx(not(empty_idx))=start_idx;
 
+        if strcmp(input.sub.(input.ses{sesindx}){subindx},'249')
+            timestart_idx = logical([0,0,0,1]); %for this particular subject the starting index happens to be the last one
+        end
         timestart = bdf_event_samples(timestart_idx)/fs;
 
         %create the rest of the 1800 trials and correct for the latency between the
@@ -522,6 +533,7 @@ this_file_path = strcat(this_file_path,'.m');
 
 %add paths to sxripts that should be added to /code directory in bids dataset
 code_file_paths = {this_file_path};
+code_file_paths{end+1} = fullfile(init.EEG2BIDS_tool_dir,'/src/move_warnings_last.py');
 code_file_paths{end+1} = fullfile(init.EEG2BIDS_tool_dir,'/src/change_json_int_keys.py');
 code_file_paths{end+1} = fullfile(init.EEG2BIDS_tool_dir,'/src/EEG2BIDS_job.sh');
 code_file_paths{end+1} = fullfile(init.EEG2BIDS_tool_dir,'/src/EEG2BIDS.sh');

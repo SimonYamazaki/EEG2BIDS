@@ -22,14 +22,14 @@ end
 
 for s = 1:length(ses)
     for f = 1:length(must_exist_files.(ses{s}))
-        if length(ses) > 1
-            ses_to_rm = ses(~ismember(ses,ses(s)));
-            data_dir_single_ses = rmfield(data_dir, ses_to_rm);
-            
-            must_exist_files_tmp = must_exist_files;
-            must_exist_files_tmp.(ses{s}) = must_exist_files_tmp.(ses{s}){f};
-            must_exist_files_struct = rmfield(must_exist_files_tmp, ses_to_rm);
-        end
+        %if length(ses) > 1
+        ses_to_rm = ses(~ismember(ses,ses(s)));
+        data_dir_single_ses = rmfield(data_dir, ses_to_rm);
+
+        must_exist_files_tmp = must_exist_files;
+        must_exist_files_tmp.(ses{s}) = must_exist_files_tmp.(ses{s}){f};
+        must_exist_files_struct = rmfield(must_exist_files_tmp, ses_to_rm);
+        %end
         
         %[subs_with_additional_files.(strcat('file',num2str(f))),additional_file_names.(strcat('file',num2str(f)))] = find_sub_ids(data_dir_single_ses, must_exist_files_struct, IDs, inputs_to_find_sub_ids{:});
         folder = must_exist_files_struct.(ses{s}); %must_exist_files.(ses{s});
