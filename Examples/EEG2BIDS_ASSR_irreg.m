@@ -7,13 +7,6 @@ function EEG2BIDS_ASSR_irreg(varargin)
 % This function takes up to 3 inputs: '{bids_dir}','{subject id}','{session}'
 %only the first argument is mandatory
 
-%add paths to relevant toolboxes
-addpath('/home/simonyj/EEG_flanker/fieldtrip/')
-addpath('/home/simonyj/EEG_flanker/fieldtrip/fileio/')
-addpath('/home/simonyj/EEG_flanker/fieldtrip/utilities/')
-addpath('/home/simonyj/EEG2BIDS/utils/')
-%addpath('/mrhome/simonyj/biosig-code/biosig4matlab/t200_FileAccess/')
-
 
 %% Setup  
 % CHANGES NEEDED IN THIS SECTION
@@ -27,13 +20,20 @@ addpath('/home/simonyj/EEG2BIDS/utils/')
 % the specification at https://bids.neuroimaging.io/specification.html
 
 %Path to the cloned EEG2BIDS dir from https://github.com/SimonYamazaki/EEG2BIDS
-init.EEG2BIDS_tool_dir = '/home/simonyj/EEG2BIDS';
+init.EEG2BIDS_tool_dir = '/mnt/projects/VIA11/EEG/BIDS_creation_files/EEG2BIDS';
+
+%Path to the cloned fieldtrip dir from https://github.com/SimonYamazaki/fieldtrip
+%Note: you will not be able to use your own installation of fieldtrip as
+%the file data2bids.m in the fieldtrip package has been modified. If you
+%insist to use your own fieldtrip installation, replace the existing
+%data2bids.m file with the one from https://github.com/SimonYamazaki/fieldtrip
+init.fieldtrip_dir = '/mnt/projects/VIA11/EEG/BIDS_creation_files/fieldtrip';
 
 %The name of the bids dataset
 % - name of your BIDS dataset to go into the dataset_description.json
 % - this is different that bids_dir, which is a path to your BIDS folder
 % - for multiple tasks in one bids_dir this name should be identical
-init.bids_dataset_name = 'VIA11_BIDS';
+init.bids_dataset_name = 'VIA11_EEG_BIDS';
 
 %The task name
 % - The task that this script concerns
@@ -51,7 +51,7 @@ init.task = 'ASSRirreg';
 %extracted from file names refer to "Manually specifying data files" below 
 %and comment/remove definitions of init.data_dir, init.data_file, 
 %init.nono_keywords_in_filename, init.id_search_method and init.id_trans
-init.data_dir.via11 = '/mrhome/simonyj/nobackup/###_ASSR_irreg';
+init.data_dir.via11 = '/mnt/projects/VIA11/EEG/Data/###_ASSR_irreg';
 %init.data_dir.via15 = '/home/simonyj/EEG_MMN';
 init.bids_dir = varargin{1}; %dont change this! bids_dir is parsed as the first input in the function 
 
@@ -98,6 +98,12 @@ init.id_search_method = {'auto'};
 % - if the id extracted from the file name is not the desired id format 
 %define a transformation as a function handle below
 init.id_trans = @(x) sprintf('%03s',x); %transforms '9' to '009' and '34' to '034' while also transforming '009' to '009'
+
+%Particular subjects to remove
+% - OPTIONAL
+% - Specify subjects that should be excluded. Remember to add a note
+% somewhere, e.g. in README.
+%init.exclude.via11 = {'065'};
 
 
 %Manually specifying data files
@@ -149,7 +155,7 @@ init.files_checked.via11 = {sprintf('sub-via*_ses-via11_task-%s_eeg.bdf',init.ta
 % - assumes the table has a column of subject ids, and rows consisting of 
 %participant info for a particular subject id 
 % - assumes that participant info is identical for all tasks in bids_dir
-init.sub_info_table_path = '/mnt/projects/VIA11/database/VIA11_allkey_160621.csv';
+init.sub_info_table_path = '????'; %'/mnt/projects/VIA11/database/VIA11_allkey_160621.csv';
 init.sub_info_table = readtable(init.sub_info_table_path); %read the table
 
 %Get subject ids coloum from sub_info_table. 
@@ -166,8 +172,9 @@ init.participant_id_trans = @(x) sprintf('%03s',num2str(x)); %transforms a doubl
 %Coloumns to include from sub_info_table
 % - only include these participant info variables (columns) in participants.tsv
 % - if no variables are listed, all variables are added to the participants.tsv
-init.participant_info_include = {'MRI_age_v11', 'Sex_child_v11','HighRiskStatus_v11'};
-
+init.participant_info_include = {'????','????','????'}; %what coloumns from database file should be added to participants.tsv. This is an example of 3 columns you may add: %{'MRI_age_v11', 'Sex_child_v11','HighRiskStatus_v11'};
+%IMPORTANT: remember to fill out the participants_variables.txt with the
+%coloumns specified here 
 
 %Path to stimulation files to include in /stimuli directory in bids_dir
 % - OPTIONAL
@@ -211,9 +218,9 @@ init.dataset_description.EthicsApprovals = {'The local Ethical Committee (Protoc
 
 %txt file paths to be read
 % - OPTIONAL
-init.event_txt_file = fullfile('/home/simonyj/EEG_ASSR_irreg','ASSR_events.txt'); % txt file with information about events but not the events itself. This includes trigger values or notes about the events in general. Should have a VERY specific format, check other events.txt in github repo
-init.instructions_txt = fullfile('/home/simonyj/EEG_ASSR_irreg','ASSR_irreg_instructions.txt'); %txt file with instructions. Should be instructions combined in one single line of a txt file. 
-%init.participants_var_txt = fullfile('/home/simonyj/EEG_ASSR_irreg','participants_variables.txt'); %txt file with a description about the variables (columns) in participants.tsv. This could also include levels for categorical variables or units for variables. Has specific format, check example file on github repo.
+init.event_txt_file = '/mnt/projects/VIA11/EEG/BIDS_creation_files/ASSR_irreg/ASSR_events.txt'; % txt file with information about events but not the events itself. This includes trigger values or notes about the events in general. Should have a VERY specific format, check other events.txt in github repo
+init.instructions_txt = '/mnt/projects/VIA11/EEG/BIDS_creation_files/ASSR_irreg/ASSR_irreg_instructions.txt'; %txt file with instructions. Should be instructions combined in one single line of a txt file. 
+init.participants_var_txt = '/mnt/projects/VIA11/EEG/BIDS_creation_files/participants_variables.txt'; %txt file with a description about the variables (columns) in participants.tsv. This could also include levels for categorical variables or units for variables. Has specific format, check example file on github repo.
 
 %Extra notes to go into events.json as a field called "extra_notes"
 % - OPTIONAL
@@ -280,10 +287,13 @@ for sesindx=1:numel(input.ses)
     cfg.eeg.DeviceSerialNumber    = '????'; % - RECOMMENDED
     
     %software filters
+    %this part is simply a template to specify two filters swf and swf3
+    %the fields of swf and swf3 are info characterizing the filters
     swf.filter_characteristic = '????';
-    swf.filter_parameter = 10;
+    swf.filter_cutoff = '????';
+    swf.filter_length = '????';
     swf3.filter_characteristic = '????';
-    swf3.filter_parameter = 100;
+    swf3.filter_parameter = '????';
     cfg.eeg.SoftwareFilters.Filter1       = swf;
     cfg.eeg.SoftwareFilters.Filter3       = swf3;
     
@@ -309,14 +319,15 @@ for sesindx=1:numel(input.ses)
     %specify external channel info to the header
     %note; this does not change the header of the data file
     EXG_chan_types = cell(8,1);
-    EXG_chan_types(:) = {'EMG'};
+    EXG_chan_types(:) = {'????'}; %what type of measurement the external channel takes. choose from list on page 136 in bids specification v1.7 %{'EMG'}; 
     cfg.hdr.chantype(end-8:end-1) = EXG_chan_types;
     cfg.hdr.chantype(end) = {'TRIG'};
-
+    
     EXG_chan_units = cell(8,1);
-    EXG_chan_units(:) = {'uV'};
+    EXG_chan_units(:) = {'????'}; %the units of the external channel measurement %{'uV'};
     cfg.hdr.chanunit(end-8:end-1) = EXG_chan_units;
     cfg.hdr.chanunit(end) = {'n/a'};
+
 
     
     
@@ -424,16 +435,16 @@ end
 %As of now, the channels.json file only includes non-standard channels
 
 if strcmp(input.run_mode,'new_BIDS')
-    channel_json = fullfile(init.bids_dir, sprintf('task-%s_channels.json',init.task));
-    ChannelsDescription.name.Description = 'name of channel label????';
-    ChannelsDescription.name.Levels.EXG1 = 'External channel 1. Mastoid left ear';
-    ChannelsDescription.name.Levels.EXG2 = 'External channel 2. Mastoid right ear';
-    ChannelsDescription.name.Levels.EXG3 = 'External channel 3, Left ear lobe';
-    ChannelsDescription.name.Levels.EXG4 = 'External channel 4. Right ear lobe';
-    ChannelsDescription.name.Levels.EXG5 = 'External channel 5. Nose';
-    ChannelsDescription.name.Levels.EXG6 = 'External channel 6. Below participants right eye';
-    ChannelsDescription.name.Levels.EXG7 = 'External channel 7. Above participants right eye';
-    ChannelsDescription.name.Levels.EXG8 = 'External channel 8. Pulse left hand';
+    channel_json = fullfile(init.bids_dir, sprintf('channels.json',init.task));
+    ChannelsDescription.name.Description = '????';
+    ChannelsDescription.name.Levels.EXG1 = '????'; %'External channel 1. Mastoid left ear';
+    ChannelsDescription.name.Levels.EXG2 = '????'; %'External channel 2. Mastoid right ear';
+    ChannelsDescription.name.Levels.EXG3 = '????'; %'External channel 3, Left ear lobe';
+    ChannelsDescription.name.Levels.EXG4 = '????'; %'External channel 4. Right ear lobe';
+    ChannelsDescription.name.Levels.EXG5 = '????'; %'External channel 5. Nose';
+    ChannelsDescription.name.Levels.EXG6 = '????'; %'External channel 6. Below participants right eye';
+    ChannelsDescription.name.Levels.EXG7 = '????'; %'External channel 7. Above participants right eye';
+    ChannelsDescription.name.Levels.EXG8 = '????'; %'External channel 8. Pulse left hand';
 
     fn = fieldnames(ChannelsDescription);
     ChannelsDescription_settings = keepfields(ChannelsDescription, fn);
@@ -450,6 +461,7 @@ if strcmp(input.run_mode,'new_BIDS')
     %write a readme about extra information
     fileID = fopen(fullfile(init.bids_dir,'README'),'a');
     fprintf(fileID,'The EEG dataset includes 4 tasks performed in the following order: ASSR regular (first task), ASSR irregular (second task), Flanker (third task) and MMN (forth task)\n');
+    fprintf(fileID,'????\n'); %other information to go into the README in the bids_dir (root of the bids directory)
     fclose(fileID);
     
     %write .bidsignore file for the BIDS validator

@@ -3,9 +3,8 @@
 Notes:
 - only works for files that can be read by fieldtrip. Currently only tested for .bdf files.
 - assumes access to a slurm batch system with the command ```sbatch```
-- if you dont have access to ```sbatch``` simply run a custom script ```EEG2BIDS_*YOUR-TASK*.m``` made in terminal or in matlab console (with proper input arguments). Look at ```/Examples``` for examples of such scripts.
+- if you dont have access to ```sbatch``` simply run your task script ```EEG2BIDS_*YOUR-TASK*.m``` in terminal or in matlab console (with proper input arguments). Look at ```/Examples``` for examples of such scripts.
 - ensures bids version 1.6 compliance
-- currently only EEG2BIDS_MMN.m is up to date, thus for examples refer ONLY to this file.
 - ```EEG2BIDS_template.m``` is not up to date either
 - for any questions write an email - simonyj@drcmr.dk
 
@@ -33,18 +32,18 @@ bash EEG2BIDS.sh --bids_dir /path/to/bids_dir --script path/to/matlab/script.m -
 
 By default the output of the BIDS directory creation is put into a .txt file located in the ```/cluster_submission``` directory in the BIDS directory. The name of this output file follows the following scheme:
 ```
-slurm-{SLURM_JOB_ID}-YY-MM-DDT-HH:MM:SS.txt
+slurm-{SLURM_JOB_ID}-{TASK_SCRIPT_NAME}-YY-MM-DDT-HH:MM:SS.txt
 ```
 If a single subject is run the subject ID is appended as so:
 ```
-slurm-{SLURM_JOB_ID}-YY-MM-DDT-HH:MM:SS-{SUBJECT_ID}.txt
+slurm-{SLURM_JOB_ID}-{TASK_SCRIPT_NAME}-YY-MM-DDT-HH:MM:SS-{SUBJECT_ID}.txt
 ```
 
 In case you have multiple tasks / paradigms that you want in one bids_dir, make a ```EEG2BIDS_*YOUR-TASK*.m``` for each task, and run them sequentially with the same bids_dir. The init.dataset_description information is only needed in the first task script.
 
-If nothing is outputted from your matlab script in the slurm output .txt file in ```/cluster_submission```, debug by running the matlab script isolated in matlab. E.g. run the function in your script in the matlab command window without any specific subject ```EEG2BIDS_flanker('/path/to/bids_dir')``` or for a specific subject ```EEG2BIDS_flanker('/path/to/bids_dir',"009","via11")```. The first argument bids_dir must be character array.
+If nothing is outputted from your matlab script in the slurm output .txt file in ```/cluster_submission```, debug by running the matlab script isolated in matlab. E.g. run the function in your script in the matlab command window without any specific subject ```EEG2BIDS_flanker('/path/to/bids_dir')``` or for a specific subject ```EEG2BIDS_flanker('/path/to/bids_dir',"009","via11")```. This way of running the file is also a way to circumvent the need of sbatch/slurm.
 
-(4). If any source data or derivative data should be added to the BIDS directory make a ```EEG2BIDS_*YOUR-TASK*_derivatives.m``` or ```EEG2BIDS_*YOUR-TASK*_sourcedata.m``` file.
+(4). If any source data or derivative data should be added to the BIDS directory make a ```EEG2BIDS_*YOUR-TASK*_derivatives.m``` or ```EEG2BIDS_*YOUR-TASK*_sourcedata.m``` file. See examples in ```/Examples```.
 
 
 ## How to manually write a json file in your script

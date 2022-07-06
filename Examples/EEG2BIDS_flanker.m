@@ -8,13 +8,6 @@ function EEG2BIDS_flanker(varargin)
 %only the first argument is mandatory
 
 
-%add paths to relevant toolboxes
-addpath('/home/simonyj/EEG_flanker/fieldtrip/')
-addpath('/home/simonyj/EEG_flanker/fieldtrip/fileio/')
-addpath('/home/simonyj/EEG_flanker/fieldtrip/utilities/')
-%addpath('/mrhome/simonyj/biosig-code/biosig4matlab/t200_FileAccess/')
-
-
 %% Setup  
 % CHANGES NEEDED IN THIS SECTION
 
@@ -27,7 +20,14 @@ addpath('/home/simonyj/EEG_flanker/fieldtrip/utilities/')
 % the specification at https://bids.neuroimaging.io/specification.html
 
 %Path to the cloned EEG2BIDS dir from https://github.com/SimonYamazaki/EEG2BIDS
-init.EEG2BIDS_tool_dir = '/home/simonyj/EEG2BIDS';
+init.EEG2BIDS_tool_dir = '/mnt/projects/VIA11/EEG/BIDS_creation_files/EEG2BIDS';
+
+%Path to the cloned fieldtrip dir from https://github.com/SimonYamazaki/fieldtrip
+%Note: you will not be able to use your own installation of fieldtrip as
+%the file data2bids.m in the fieldtrip package has been modified. If you
+%insist to use your own fieldtrip installation, replace the existing
+%data2bids.m file with the one from https://github.com/SimonYamazaki/fieldtrip
+init.fieldtrip_dir = '/mnt/projects/VIA11/EEG/BIDS_creation_files/fieldtrip';
 
 %The name of the bids dataset
 % - name of your BIDS dataset to go into the dataset_description.json
@@ -101,7 +101,9 @@ init.id_trans = @(x) sprintf('%03s',x); %transforms '9' to '009' and '34' to '03
 
 %Particular subjects to remove
 % - OPTIONAL
-%init.exclude.via11 = {'068'};
+% - Specify subjects that should be excluded. Remember to add a note
+% somewhere, e.g. in README.
+%init.exclude.via11 = {'065'};
 
 %Manually specifying data files
 % - OPTIONAL

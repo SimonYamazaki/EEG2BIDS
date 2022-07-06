@@ -18,10 +18,14 @@ function EEG2BIDS_MMN(varargin)
 % the specification at https://bids.neuroimaging.io/specification.html
 
 %Path to the cloned EEG2BIDS dir from https://github.com/SimonYamazaki/EEG2BIDS
-init.EEG2BIDS_tool_dir = '/home/simonyj/EEG2BIDS';
+init.EEG2BIDS_tool_dir = '/mnt/projects/VIA11/EEG/BIDS_creation_files/EEG2BIDS';
 
-%Path to the cloned fieldtrip dir from 
-init.fieldtrip_dir = '/home/simonyj/EEG2BIDS';
+%Path to the cloned fieldtrip dir from https://github.com/SimonYamazaki/fieldtrip
+%Note: you will not be able to use your own installation of fieldtrip as
+%the file data2bids.m in the fieldtrip package has been modified. If you
+%insist to use your own fieldtrip installation, replace the existing
+%data2bids.m file with the one from https://github.com/SimonYamazaki/fieldtrip
+init.fieldtrip_dir = '/mnt/projects/VIA11/EEG/BIDS_creation_files/fieldtrip';
 
 %The name of the bids dataset
 % - name of your BIDS dataset to go into the dataset_description.json
@@ -93,6 +97,11 @@ init.id_search_method = {'auto'};
 %define a transformation as a function handle below
 init.id_trans = @(x) sprintf('%03s',x); %transforms '9' to '009' and '34' to '034' while also transforming '009' to '009'
 
+%Particular subjects to remove
+% - OPTIONAL
+% - Specify subjects that should be excluded. Remember to add a note
+% somewhere, e.g. in README.
+%init.exclude.via11 = {'065'};
 
 %Manually specifying data files
 % - OPTIONAL
@@ -315,7 +324,7 @@ for sesindx=1:numel(input.ses)
     cfg.hdr.chantype(end) = {'TRIG'};
     
     EXG_chan_units = cell(8,1);
-    EXG_chan_units(:) = {'????'}; %the units of the external channel measurement %{'uV'};
+    EXG_chan_units(:) = {'????'}; %the units of the external channel measurement. Exmaple: %{'uV'};
     cfg.hdr.chanunit(end-8:end-1) = EXG_chan_units;
     cfg.hdr.chanunit(end) = {'n/a'};
 
