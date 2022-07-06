@@ -37,7 +37,9 @@ function cfg = configure_input(cfg,input)
     %specify whether files should be included
     cfg.include_scans = input.init.include_scans_tsv;
     cfg.write_events_tsv = input.init.include_events_tsv;
-        
+    cfg.channels_in_sub_dir = input.init.channels_in_sub_dir;
+    cfg.include_task_name = input.init.include_task_name;
+
     % define data file for current subject in loop
     if isstruct(input.init.data_dir)
         cfg.dataset   = char(fullfile(input.bdf_file_folders.(input.ses{sesindx}){subindx}, input.bdf_file_names.(input.ses{sesindx}){subindx}));
@@ -76,6 +78,8 @@ function cfg = configure_input(cfg,input)
     if isfield(input.init,'extra_notes')
         cfg.event_json_struct.Additional_notes_to_event_tsv.Notes = input.init.extra_notes;
     end
-
+    
+    %set default
+    cfg.keep_events_order = true;
 end
 

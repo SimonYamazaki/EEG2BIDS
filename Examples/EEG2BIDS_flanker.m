@@ -12,7 +12,6 @@ function EEG2BIDS_flanker(varargin)
 addpath('/home/simonyj/EEG_flanker/fieldtrip/')
 addpath('/home/simonyj/EEG_flanker/fieldtrip/fileio/')
 addpath('/home/simonyj/EEG_flanker/fieldtrip/utilities/')
-addpath('/home/simonyj/EEG2BIDS/utils/')
 %addpath('/mrhome/simonyj/biosig-code/biosig4matlab/t200_FileAccess/')
 
 
@@ -34,7 +33,7 @@ init.EEG2BIDS_tool_dir = '/home/simonyj/EEG2BIDS';
 % - name of your BIDS dataset to go into the dataset_description.json
 % - this is different that bids_dir, which is a path to your BIDS folder
 % - for multiple tasks in one bids_dir this name should be identical
-init.bids_dataset_name = 'VIA11_BIDS';
+init.bids_dataset_name = 'VIA11_EEG_BIDS';
 
 %The task name
 % - The task that this script concerns
@@ -52,9 +51,9 @@ init.task = 'Flanker';
 %extracted from file names refer to "Manually specifying data files" below 
 %and comment/remove definitions of init.data_dir, init.data_file, 
 %init.nono_keywords_in_filename, init.id_search_method and init.id_trans
-init.data_dir.via11 = '/mrhome/simonyj/nobackup/###_Flanker';
+init.data_dir.via11 = '/mnt/projects/VIA11/EEG/Data/###_Flanker';
 %init.data_dir.via15 = '/home/simonyj/EEG_MMN';
-init.bids_dir = varargin{1}; %dont change this! bids_dir is parsed as the first input in the function 
+init.bids_dir = char(varargin{1}); %dont change this! bids_dir is parsed as the first input in the function 
 
 %Search pattern for data files in data_dir
 % - data_file follows the same structure as data_dir with respect to sessions
@@ -100,6 +99,9 @@ init.id_search_method = {'auto'};
 %define a transformation as a function handle below
 init.id_trans = @(x) sprintf('%03s',x); %transforms '9' to '009' and '34' to '034' while also transforming '009' to '009'
 
+%Particular subjects to remove
+% - OPTIONAL
+%init.exclude.via11 = {'068'};
 
 %Manually specifying data files
 % - OPTIONAL
@@ -150,7 +152,7 @@ init.files_checked.via11 = {sprintf('sub-via*_ses-via11_task-%s_eeg.bdf',init.ta
 % - assumes the table has a column of subject ids, and rows consisting of 
 %participant info for a particular subject id 
 % - assumes that participant info is identical for all tasks in bids_dir
-init.sub_info_table_path = '/mnt/projects/VIA11/database/VIA11_allkey_160621.csv';
+init.sub_info_table_path = '????'; % the allkey database file, this was the old one: '/mnt/projects/VIA11/database/VIA11_allkey_160621.csv';
 init.sub_info_table = readtable(init.sub_info_table_path); %read the table
 
 %Get subject ids coloum from sub_info_table. 
@@ -167,8 +169,9 @@ init.participant_id_trans = @(x) sprintf('%03s',num2str(x)); %transforms a doubl
 %Coloumns to include from sub_info_table
 % - only include these participant info variables (columns) in participants.tsv
 % - if no variables are listed, all variables are added to the participants.tsv
-init.participant_info_include = {'MRI_age_v11', 'Sex_child_v11','HighRiskStatus_v11'};
-
+init.participant_info_include = {'????','????','????'}; %what coloumns from database file should be added to participants.tsv. This is an example of 3 columns you may add: %{'MRI_age_v11', 'Sex_child_v11','HighRiskStatus_v11'};
+%IMPORTANT: remember to fill out the participants_variables.txt with the
+%coloumns specified here 
 
 %Path to stimulation files to include in /stimuli directory in bids_dir
 % - OPTIONAL
@@ -188,6 +191,12 @@ init.include_scans_tsv = true;
 %events in the bdf file header
 init.include_events_tsv = true; 
 
+%Should channels.tsv be loacted in bids_dir or subject folders
+% - if in bids_dir, according to the inheritance principle, the channels
+%files are general for all subjects and sessions
+% - this functionality is needed for mulitple tasks in bids_dir
+init.channels_in_sub_dir = false; %false -> channels.tsv will be located in bids_dir
+init.include_task_name = false; %true -> name of file will be e.g task-MMN_channels.tsv
 
 %Should events.json be loacted in bids_dir or subject folders
 % - if in bids_dir, according to the inheritance principle, the event
@@ -206,13 +215,13 @@ init.dataset_description.EthicsApprovals = {'The local Ethical Committee (Protoc
 
 %txt file paths to be read
 % - OPTIONAL
-init.event_txt_file = fullfile('/home/simonyj/EEG_flanker','Flanker_events.txt'); % txt file with information about events but not the events itself. This includes trigger values or notes about the events in general. Should have a VERY specific format, check other events.txt in github repo
-init.instructions_txt = fullfile('/home/simonyj/EEG_flanker','Flanker_instructions.txt'); %txt file with instructions. Should be instructions combined in one single line of a txt file. 
-%init.participants_var_txt = fullfile('/home/simonyj/EEG_flanker','participants_variables.txt'); %txt file with a description about the variables (columns) in participants.tsv. This could also include levels for categorical variables or units for variables. Has specific format, check example file on github repo.
+init.event_txt_file = '/mnt/projects/VIA11/EEG/BIDS_creation_files/Flanker/Flanker_events.txt'; % txt file with information about events but not the events itself. This includes trigger values or notes about the events in general. Should have a VERY specific format, check other events.txt in github repo
+init.instructions_txt = '/mnt/projects/VIA11/EEG/BIDS_creation_files/Flanker/Flanker_instructions.txt'; %txt file with instructions. Should be instructions combined in one single line of a txt file. 
+init.participants_var_txt = '/mnt/projects/VIA11/EEG/BIDS_creation_files/participants_variables.txt'; %txt file with a description about the variables (columns) in participants.tsv. This could also include levels for categorical variables or units for variables. Has specific format, check example file on github repo.
 
 %Extra notes to go into events.json as a field called "extra_notes"
 % - OPTIONAL
-init.extra_notes = ' The variables from subject_{SUB_ID}_MMN_triggers.mat files are added to the events.tsv files as start_sample -> start_sample, rand_ISI -> rand_ISI, mmn-codes -> conditionlabels.';
+init.extra_notes = ' Subject 065 does not have an events.tsv file due to issues loading the file with fieldtrip. Possible solution is found at: https://mailman.science.ru.nl/pipermail/fieldtrip/2019-August/039544.html';
 
 %configure the initialization 
 init.varargin = varargin;
@@ -271,14 +280,17 @@ for sesindx=1:numel(input.ses)
     cfg.eeg.Manufacturer          = 'Biosemi'; % - RECOMMENDED
     cfg.eeg.ManufacturersModelName = '????'; % - RECOMMENDED
     cfg.eeg.SoftwareVersions      = '????'; % - RECOMMENDED
-    cfg.eeg.CogPOID               = 'http://wiki.cogpo.org/index.php?title=Flanker_Task_Paradigm';
+    cfg.eeg.CogPOID               = '????'; % - RECOMMEDED %'http://wiki.cogpo.org/index.php?title=Flanker_Task_Paradigm';
     cfg.eeg.DeviceSerialNumber    = '????'; % - RECOMMENDED
     
     %software filters
+    %this part is simply a template to specify two filters swf and swf3
+    %the fields of swf and swf3 are info characterizing the filters
     swf.filter_characteristic = '????';
-    swf.filter_parameter = 10;
+    swf.filter_cutoff = '????';
+    swf.filter_length = '????';
     swf3.filter_characteristic = '????';
-    swf3.filter_parameter = 100;
+    swf3.filter_parameter = '????';
     cfg.eeg.SoftwareFilters.Filter1       = swf;
     cfg.eeg.SoftwareFilters.Filter3       = swf3;
     
@@ -304,12 +316,12 @@ for sesindx=1:numel(input.ses)
     %specify external channel info to the header
     %note; this does not change the header of the data file
     EXG_chan_types = cell(8,1);
-    EXG_chan_types(:) = {'EMG'};
+    EXG_chan_types(:) = {'????'}; %what type of measurement the external channel takes. choose from list on page 136 in bids specification v1.7 %{'EMG'}; 
     cfg.hdr.chantype(end-8:end-1) = EXG_chan_types;
     cfg.hdr.chantype(end) = {'TRIG'};
-
+    
     EXG_chan_units = cell(8,1);
-    EXG_chan_units(:) = {'uV'};
+    EXG_chan_units(:) = {'????'}; %the units of the external channel measurement %{'uV'};
     cfg.hdr.chanunit(end-8:end-1) = EXG_chan_units;
     cfg.hdr.chanunit(end) = {'n/a'};
 
@@ -328,45 +340,100 @@ for sesindx=1:numel(input.ses)
     %on the events present in your task. Please study what the event_struct
     %looks like before adding things to it.
     
-    if init.include_events_tsv %only include the events.tsv file if specified in the init struct above
-
-        %read the events of the bdf file
-        event_struct = ft_read_event(cfg.dataset);
-
-        %extract the sampling frequency from somewhere
-        fs = cfg.hdr.Fs;  %e.g. 4096
-        delay = 38;
-
-        bdf_event_table = struct2table(event_struct); 
-
-        event_table = [bdf_event_table];%;generated_event_table];
-
-        cfg.events = table2struct(event_table);
-        cfg.keep_events_order = true; %should the events be sorted according to sample or should it keep the order in cfg.events?
-        
-     %%%%% EVENTS %%%%%
-    %cfg.events = ft_read_event(fullfile(data_dir,bdf_file_names{subindx}));
-    
-    %for col_idx = 1:length(behav_col_names)
-    %    col_name = behav_col_names{col_idx};
-    %    col_values = table2cell(behav_table(behav_table.Var2==sub_int,col_idx));
-    %    
-    %    if all(cellfun(@isdatetime, col_values))
-    %        col_values = convertStringsToChars(string(col_values));
-    %    end
-    %    
-    %    con_incon_idx = [cfg.events.value]==65291 | [cfg.events.value]==65311 | [cfg.events.value]==65301 | [cfg.events.value]==65321;
-    %    empty_idx = cellfun(@isempty,{cfg.events.value},'UniformOutput',1);
-    %    condition_idx = false(1,length(empty_idx));
-    %    condition_idx(not(empty_idx))=con_incon_idx;
-    %    
-    %    event_values = cell(1,length(cfg.events));
-    %    event_values([condition_idx]) = col_values;
-    %    event_values([not(condition_idx)]) = {'n/a'};
-    %    [cfg.events.(col_name)] = event_values{:};
-    %end
+    events_tsv_bool = init.include_events_tsv;
+    if strcmp(input.sub.(input.ses{sesindx}){subindx},'065')
+        init.include_events_tsv = false; %for this particular subject the file can not be read
     end
     
+    if init.include_events_tsv %only include the events.tsv file if specified in the init struct above
+        clear S
+        event_struct = ft_read_event(cfg.dataset);
+        subjfile = ['/mnt/projects/VIA11/EEG/Data/###_Flanker/flanker_kids_eegBackup_new-' input.sub.(input.ses{sesindx}){subindx} '-1.txt'];     %  Change for folder with files
+        lines = fileread(subjfile);
+
+        [~,Acc] = strsplit(lines,{'win.ACC: 0','win.ACC: 1'},'CollapseDelimiters',true);    
+        for j=1:length(Acc)
+            if (Acc{j}(10)=='0')
+                Accu(j)=0;
+            elseif (Acc{j}(10)=='1')
+                Accu(j)=1;
+            end
+            Accu = reshape(Accu,[],1);
+        end
+
+        RT = extractBetween(lines,'responsewin.RT: ',"r");  
+        numb=['0' '1' '2' '3' '4' '5' '6' '7' '8' '9'];
+        rtt=[];
+        RTn=[];
+        for i=1:size(RT)
+            temp=RT{i};
+            for j=1:size(temp,2) 
+                contains = find(numb(:) == temp(j));
+                rtt=[rtt (numb(contains))];
+            end
+           RTn(i)=str2num(rtt);
+           RTn = reshape(RTn,[],1); 
+           rtt=[];
+        end
+
+        Resp = extractBetween(lines,'responsewin.RESP: ','r');
+
+        conditions = {'0: start of file','1: When the flankers come up',...
+                    '11: midle flanker right con','21: midle flanker right incon',...
+                    '31: midle flanker left con','41: midle flanker left incon',...
+                    '111: correct right con','121: correct right incon',...
+                    '131: correct left con', '141: correct left incon',...
+                    '211: incorrect right con','221: incorrect right incon',...
+                    '231: incorrect left con','241: incorrect left incon','99: exclamation mark (!)'};
+        values_dic = [65280,65281,65291,65301,65311,65321,65391,65401,65411,65421,65491,65501,65511,65521,65379];
+        response_conditions = {'111','121','131','141','211','221','231','241'};
+
+        condition_values = [event_struct.value];
+        bdf_event_samples = [event_struct.sample];
+
+        empty_idx = cellfun(@isempty,{event_struct.value},'UniformOutput',1);
+
+        for i = 1:length(condition_values)
+            condition_idx = condition_values(i) == values_dic;
+            if any(condition_idx)
+                lbl = conditions{condition_idx};
+            else
+                lbl = 'unknown';
+            end
+            S.conditionlabels{i,:}=lbl;
+        end
+
+        response_idx = cellfun(@(x) ismember({x(1:3)},response_conditions),S.conditionlabels,'UniformOutput',1);
+        response_time = cell(length(S.conditionlabels),1);
+        RT_cell = num2cell(RTn / 1000); %cell array of response times in seconds
+        response_time(response_idx) = RT_cell(:);
+
+        accuracies = cell(length(S.conditionlabels),1);
+        acc_cell = num2cell(int16(Accu)); %cell array of accuracies
+        accuracies(response_idx) = acc_cell(:);
+
+        response = cell(length(S.conditionlabels),1);
+        resp_cell = num2cell(int16(Resp)); %cell array of response types
+        response(response_idx) = resp_cell(:);
+
+        %mandatory coloumns in events.tsv
+        type = repmat({'STATUS'},length(S.conditionlabels),1) ;
+        value = num2cell( condition_values ,1 )';
+        offset = cell(length(S.conditionlabels),1); %keep this variable
+        duration = num2cell(zeros(length(S.conditionlabels),1)); 
+        sample = num2cell( bdf_event_samples(not(empty_idx)) )';
+
+        event_table = table(type,sample,value,offset,duration);
+        event_table.trial_type = [S.conditionlabels(:)];
+        event_table.response_time = response_time;
+        event_table.accuracies = accuracies;
+        event_table.response = response;
+
+        cfg.events = table2struct(event_table);
+        cfg.keep_events_order = true;
+    end
+    
+    init.include_events_tsv = events_tsv_bool;
     
     %%%%%%% MAKING BIDS DATASET FOR THE CURRENT SUBJECT IN LOOP %%%%%%% 
     
@@ -378,40 +445,58 @@ for sesindx=1:numel(input.ses)
     %write events.json
     if input.init.write_events %if events.tsv should be written, so should events.json
         
-        %description, units, or categorical levels of variables (columns) in events.tsv
+%description, units, or categorical levels of variables (columns) in events.tsv
         %this information goes into events.json
-        cfg.event_json_struct.onset.Description = 'Onset of stimuli. The onset of the sound being played for the subject and not the onset of epoch';
-        cfg.event_json_struct.onset.Units = 's';
+        cfg.event_json_struct.onset.Description = '????'; %this onset is automatically generated from the samples when creating bids dataset. %'Onset of event. The onset of the sound being played for the subject and not the onset of epoch';
+        cfg.event_json_struct.onset.Units = 's';  
 
-        cfg.event_json_struct.duration.Description = 'Duration of stimuli';
-        cfg.event_json_struct.duration.Units = 's';
+        cfg.event_json_struct.duration.Description = '????'; %the duration of stimuli
+        cfg.event_json_struct.duration.Units = '????';
+
+        cfg.event_json_struct.value.Description = '????';
+        cfg.event_json_struct.value.Units = '????';
+
+        cfg.event_json_struct.offset.Description = '????';
+        cfg.event_json_struct.offset.Units = '????';
 
         cfg.event_json_struct.sample.Description = '????';
         cfg.event_json_struct.sample.Units = '????';
 
         cfg.event_json_struct.type.Description = '????';
-        cfg.event_json_struct.type.Levels.STATUS = 'STATUS type';
-        cfg.event_json_struct.type.Levels.Epoch = 'Epoch type';
-        cfg.event_json_struct.type.Levels.CM_in_range = 'CM_in_range type';
+        cfg.event_json_struct.type.Levels.STATUS = '????';
+        cfg.event_json_struct.type.Levels.Epoch = '????';
+        cfg.event_json_struct.type.Levels.CM_in_range = '????';
 
-        cfg.event_json_struct.delay.Description = 'Delay between the trigger and when the sound is actually played in the headphones of 37 ms';
-        cfg.event_json_struct.delay.Units = 's';
+        cfg.event_json_struct.response.Description = '????';
+        cfg.event_json_struct.response.Units = '????';
 
-        cfg.event_json_struct.conditionlabel.Description = '????';
-        cfg.event_json_struct.conditionlabel.Levels.Int_1 = '????';
-        cfg.event_json_struct.conditionlabel.Levels.Int_2 = '????';
+        cfg.event_json_struct.response_time.Description = '????';
+        cfg.event_json_struct.response_time.Units = 's';
 
-        cfg.event_json_struct.rand_ISI.Description = '????';
-        cfg.event_json_struct.rand_ISI.Units = '????';
-
-        cfg.event_json_struct.start_samples.Description = '????';
-        cfg.event_json_struct.start_samples.Units = '????';
-
-        cfg.event_json_struct.StimulusPresentation.OperatingSystem = '????';
-        cfg.event_json_struct.StimulusPresentation.SoftwareName = '????';
-        %cfg.TaskEventsDescription.StimulusPresentation.SoftwareRRID = '????';
-        cfg.event_json_struct.StimulusPresentation.SoftwareVersion = '????';
-        %cfg.TaskEventsDescription.StimulusPresentation.code = '????';
+        cfg.event_json_struct.accuracy.Description = '????';
+        cfg.event_json_struct.accuracy.Units = 'boolean';
+        cfg.event_json_struct.trial_type.Description = '????'; %these are the different condition types, look in variable called conditions, or in flanker_events.txt
+        cfg.event_json_struct.trial_type.Levels.Int_0 = '????';
+        cfg.event_json_struct.trial_type.Levels.Int_1 = '????';
+        cfg.event_json_struct.trial_type.Levels.Int_11 = '????';
+        cfg.event_json_struct.trial_type.Levels.Int_21 = '????';
+        cfg.event_json_struct.trial_type.Levels.Int_31 = '????';
+        cfg.event_json_struct.trial_type.Levels.Int_41 = '????';
+        cfg.event_json_struct.trial_type.Levels.Int_111 = '????';
+        cfg.event_json_struct.trial_type.Levels.Int_121 = '????';
+        cfg.event_json_struct.trial_type.Levels.Int_131 = '????';
+        cfg.event_json_struct.trial_type.Levels.Int_141 = '????';
+        cfg.event_json_struct.trial_type.Levels.Int_211 = '????';
+        cfg.event_json_struct.trial_type.Levels.Int_221 = '????';
+        cfg.event_json_struct.trial_type.Levels.Int_231 = '????';
+        cfg.event_json_struct.trial_type.Levels.Int_241 = '????';
+        cfg.event_json_struct.trial_type.Levels.Int_99 = '????';
+        
+        cfg.event_json_struct.StimulusPresentation.OperatingSystem = '????'; %RECOMMENDED
+        cfg.event_json_struct.StimulusPresentation.SoftwareName = '????'; %RECOMMENDED
+        cfg.TaskEventsDescription.StimulusPresentation.SoftwareRRID = '????'; %RECOMMENDED %Research Resource Identifier
+        cfg.event_json_struct.StimulusPresentation.SoftwareVersion = '????'; %RECOMMENDED
+        cfg.TaskEventsDescription.StimulusPresentation.code = '????'; %RECOMMENDED %code URI used to present the stimuli
 
         %write the file 
         fn = fieldnames(cfg.event_json_struct);
@@ -442,16 +527,16 @@ end
 %As of now, the channels.json file only includes non-standard channels
 
 if strcmp(input.run_mode,'new_BIDS')
-    channel_json = fullfile(init.bids_dir, sprintf('task-%s_channels.json',init.task));
-    ChannelsDescription.name.Description = 'name of channel label????';
-    ChannelsDescription.name.Levels.EXG1 = 'External channel 1. Mastoid left ear';
-    ChannelsDescription.name.Levels.EXG2 = 'External channel 2. Mastoid right ear';
-    ChannelsDescription.name.Levels.EXG3 = 'External channel 3, Left ear lobe';
-    ChannelsDescription.name.Levels.EXG4 = 'External channel 4. Right ear lobe';
-    ChannelsDescription.name.Levels.EXG5 = 'External channel 5. Nose';
-    ChannelsDescription.name.Levels.EXG6 = 'External channel 6. Below participants right eye';
-    ChannelsDescription.name.Levels.EXG7 = 'External channel 7. Above participants right eye';
-    ChannelsDescription.name.Levels.EXG8 = 'External channel 8. Pulse left hand';
+    channel_json = fullfile(init.bids_dir, sprintf('channels.json',init.task));
+    ChannelsDescription.name.Description = '????';
+    ChannelsDescription.name.Levels.EXG1 = '????'; %'External channel 1. Mastoid left ear';
+    ChannelsDescription.name.Levels.EXG2 = '????'; %'External channel 2. Mastoid right ear';
+    ChannelsDescription.name.Levels.EXG3 = '????'; %'External channel 3, Left ear lobe';
+    ChannelsDescription.name.Levels.EXG4 = '????'; %'External channel 4. Right ear lobe';
+    ChannelsDescription.name.Levels.EXG5 = '????'; %'External channel 5. Nose';
+    ChannelsDescription.name.Levels.EXG6 = '????'; %'External channel 6. Below participants right eye';
+    ChannelsDescription.name.Levels.EXG7 = '????'; %'External channel 7. Above participants right eye';
+    ChannelsDescription.name.Levels.EXG8 = '????'; %'External channel 8. Pulse left hand';
 
     fn = fieldnames(ChannelsDescription);
     ChannelsDescription_settings = keepfields(ChannelsDescription, fn);
@@ -468,6 +553,7 @@ if strcmp(input.run_mode,'new_BIDS')
     %write a readme about extra information
     fileID = fopen(fullfile(init.bids_dir,'README'),'a');
     fprintf(fileID,'The EEG dataset includes 4 tasks performed in the following order: ASSR regular (first task), ASSR irregular (second task), Flanker (third task) and MMN (forth task)\n');
+    fprintf(fileID,'????\n'); %other information to go into the README in the bids_dir (root of the bids directory)
     fclose(fileID);
     
     %write .bidsignore file for the BIDS validator

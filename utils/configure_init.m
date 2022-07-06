@@ -6,6 +6,19 @@ if not(isfolder(init.bids_dir))
     mkdir(init.bids_dir)
 end
 
+%add paths to relevant toolboxes
+if isfield(init,'EEG2BIDS_tool_dir')
+    addpath([init.EEG2BIDS_tool_dir,'/utils/'])
+end
+
+%add paths to relevant toolboxes
+if isfield(init,'fieldtrip_dir')
+    addpath([init.fieldtrip_dir,'/'])
+    addpath([init.fieldtrip_dir,'/fileio/'])
+    addpath([init.fieldtrip_dir,'/utilities/'])
+end
+
+
 if isfield(init,'participant_id_trans')
     init.IDs_cell = cell(1,length(init.IDs));
     
@@ -66,7 +79,7 @@ ses_add = false(1,length(input.ses));
 
 for s = 1:length(input.ses)
     %only include subjects that has the additional_files
-    if exist('must_exist_files','var')
+    if isfield(init,'must_exist_files')%exist('must_exist_files','var')
         input.excluded_subs = input.sub.(input.ses{s})(~ismember(input.sub.(input.ses{s}),input.subs_with_all_files.(input.ses{s}))); %subjects which does not have one of the must_exist_files
 
         %print warning if subjects are excluded
@@ -74,7 +87,7 @@ for s = 1:length(input.ses)
             fprintf('WARNING: Subject %s will not be included in the BIDS directory as they are missing a "must_exist_file" ',input.excluded_subs{:})
             fprintf('WARNING: in session %s\n',input.ses{s})
             input.bdf_file_names.(input.ses{s}) = input.bdf_file_names.(input.ses{s})(~ismember(input.sub.(input.ses{s}),input.subs_with_all_files.(input.ses{s}))); %the exlusion of subjects which are already existing in the bids_dir
-            input.sub.(input.ses{s}) = input.sub.(input.ses{s})(ismember(input.sub.(input.ses{s}),input.subs_with_all_files.(input.ses{s}))); %the exlusion of the subjects who does not have the must_exist_files
+            input.sub.(input.ses{s}) = input.sub.(input.ses{s})(~ismember(input.sub.(input.ses{s}),input.subs_with_all_files.(input.ses{s}))); %the exlusion of the subjects who does not have the must_exist_files
         end
     end
     
@@ -89,7 +102,7 @@ for s = 1:length(input.ses)
         ses_run(s) = ~isempty(input.sub.(input.ses{s})) && isempty(input.existing_sub.(input.ses{s})); %the sessions that should be run/started/created
         ses_add(s) = ~isempty(input.sub.(input.ses{s})) && ~isempty(input.existing_sub.(input.ses{s})); %the existing sessions with subjects to be added to
         
-    elseif length(varargin)>1 %running this script for a single subject
+    elseif length(init.varargin)>1 %running this script for a single subject
 
         assert(~isempty(input.sub.(input.ses{s})),sprintf('A BIDS directory will not be made for subject %s. Check warnings above',init.varargin{2}))
         
@@ -104,6 +117,7 @@ end
 assert( ~all(finished_ses), 'All relevant subject files are already moved to BIDS data structure in all sessions. Add more subject files to the data_dir or run EEG2BIDS.sh for a specific subject.')
 
 %new sessions to be added (which also includes creating a new bids dataset)
+input.run_mode = 'exist_BIDS';
 if any(ses_run)
     if length(input.ses(ses_run))==1
         if strcmp(input.ses{ses_run},'None')
@@ -112,9 +126,16 @@ if any(ses_run)
     else
         fprintf('Creating new BIDS dataset for session %s from subject files \n',input.ses{ses_run})
     end
-    input.run_mode = 'new_BIDS'; %implies that a new session or BIDS dataset is to be created, along general files such as dataset_description, participants.json
+    
+    input.run_mode = 'new_BIDS';
 else
     input.run_mode = 'exist_BIDS';
+end
+
+if isfile(fullfile(init.bids_dir,'participants.json')) % also check that participants json is written, as it is the last file written in the script 
+    input.run_mode = 'exist_BIDS';
+else
+    input.run_mode = 'new_BIDS'; %implies that a new session or BIDS dataset is to be created, along general files such as dataset_description, participants.json
 end
 
 %subjects to be added to an existing session
@@ -139,14 +160,20 @@ if isfield(init,'stim_files')
     [bids_stim_file_path, input.bids_stim_file_name] = get_bids_stim_files(init.stim_files,stim_dir);
 
     %copy them into the appropriate folder
-    if strcmp(input.run_mode,'new_BIDS')
-        cp_ses_files(init.stim_files, bids_stim_file_path)    
-    end
+    
+    cp_ses_files(init.stim_files, bids_stim_file_path)    
 
 end
 
+%exlude extra subjects manually specified
+if isfield(init,'exclude')
+    input.sub.(input.ses{s}) = input.sub.(input.ses{s})(~ismember(input.sub.(input.ses{s}),init.exclude.(input.ses{s})));
+end
+
+
 
 input.init = init;
+
 
 end
 

@@ -107,6 +107,7 @@ for s = 1:length(ses)
     
     empty_sub_idx = logical(cell2mat(cellfun(@isempty, sub.(ses{s}),'UniformOutput',0)));
     sub.(ses{s})(empty_sub_idx) = [];
+    bdf_file_names.(ses{s})(empty_sub_idx) = [];
 end %ses loop
 
 

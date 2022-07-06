@@ -187,6 +187,12 @@ init.include_scans_tsv = true;
 %events in the bdf file header
 init.include_events_tsv = true; 
 
+%Should channels.tsv be loacted in bids_dir or subject folders
+% - if in bids_dir, according to the inheritance principle, the channels
+%files are general for all subjects and sessions
+% - this functionality is needed for mulitple tasks in bids_dir
+init.channels_in_sub_dir = false; %false -> channels.tsv will be located in bids_dir
+init.include_task_name = false; %true -> name of file will be e.g task-MMN_channels.tsv
 
 %Should events.json be loacted in bids_dir or subject folders
 % - if in bids_dir, according to the inheritance principle, the event
@@ -211,7 +217,7 @@ init.instructions_txt = fullfile('/home/simonyj/EEG_ASSR_reg','ASSR_reg_instruct
 
 %Extra notes to go into events.json as a field called "extra_notes"
 % - OPTIONAL
-init.extra_notes = ' The variables from subject_{SUB_ID}_MMN_triggers.mat files are added to the events.tsv files as start_sample -> start_sample, rand_ISI -> rand_ISI, mmn-codes -> conditionlabels.';
+init.extra_notes = ' ';
 
 %configure the initialization 
 init.varargin = varargin;

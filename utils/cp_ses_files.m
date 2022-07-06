@@ -12,8 +12,10 @@ end
 
 for ss = 1:length(ses)
     for sf=1:length(stim_files_struct.(ses{ss}))
-        fprintf('copying %s to %s for session %s\n',stim_files_struct.(ses{ss}){sf},bids_stim_file_path.(ses{ss}){sf},ses{ss})
-        copyfile( stim_files_struct.(ses{ss}){sf}, bids_stim_file_path.(ses{ss}){sf}, 'f') %copy the stim files listed in the setup to the stim directory in the bids_dir
+        if not(isfile( bids_stim_file_path.(ses{ss}){sf} ))
+            fprintf('copying %s to %s for session %s\n',stim_files_struct.(ses{ss}){sf},bids_stim_file_path.(ses{ss}){sf},ses{ss})
+            copyfile( stim_files_struct.(ses{ss}){sf}, bids_stim_file_path.(ses{ss}){sf}, 'f') %copy the stim files listed in the setup to the stim directory in the bids_dir
+        end
     end
 end
 
