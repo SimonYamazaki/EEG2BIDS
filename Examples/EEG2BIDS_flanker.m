@@ -21,6 +21,7 @@ function EEG2BIDS_flanker(varargin)
 
 %Path to the cloned EEG2BIDS dir from https://github.com/SimonYamazaki/EEG2BIDS
 init.EEG2BIDS_tool_dir = '/mnt/projects/VIA11/EEG/BIDS_creation_files/EEG2BIDS';
+addpath(fullfile(init.EEG2BIDS_tool_dir,'utils'))
 
 %Path to the cloned fieldtrip dir from https://github.com/SimonYamazaki/fieldtrip
 %Note: you will not be able to use your own installation of fieldtrip as
@@ -131,7 +132,7 @@ init.ID_prefix = 'via';
 % - Must also specify where to find the id corresponding to the must_exist_files
 % - EXEPTION: if there are sessions without the need of must_exist_files, then
 %simply dont define the field of that session in must_exist_files
-init.must_exist_files.via11 = {'/mrhome/simonyj/nobackup/###_Flanker/flanker_kids_eegBackup_new-*-1.txt'};  %'/home/simonyj/EEG_MMN/**/*_triggers.mat'
+init.must_exist_files.via11 = {'/mnt/projects/VIA11/EEG/Data/###_Flanker/flanker_kids_eegBackup_new-*-1.txt'};  %'/home/simonyj/EEG_MMN/**/*_triggers.mat'
 %init.must_exist_files.via15 = {'/mrhome/simonyj/nobackup/###_MMN/*_triggers.mat'}; 
 init.id_from_folder = false; %false -> extracts id from filename, true -> find it from folder name
 init.must_exist_files_id_search = {'manual',28:30}; %from either directory or file name
@@ -270,6 +271,7 @@ for sesindx=1:numel(input.ses)
     cfg.TaskDescription = '????';
 
     %Specify some general information that will be added to the eeg.json file
+    %Every field of cfg.eeg will be a field in the eeg.json file
     cfg.eeg.InstitutionName             = 'Centre for Functional and Diagnostic Imagning and Research, Danish Research Center for Magnetic Resonance, Amager and Hvidovre hospital'; % - RECOMMENDED
     cfg.eeg.InstitutionAddress          = 'Kettegard Allé 30, DK-2650 Hvidovre, Denmark'; % - RECOMMENDED
     

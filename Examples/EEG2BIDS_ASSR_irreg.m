@@ -21,6 +21,7 @@ function EEG2BIDS_ASSR_irreg(varargin)
 
 %Path to the cloned EEG2BIDS dir from https://github.com/SimonYamazaki/EEG2BIDS
 init.EEG2BIDS_tool_dir = '/mnt/projects/VIA11/EEG/BIDS_creation_files/EEG2BIDS';
+addpath(fullfile(init.EEG2BIDS_tool_dir,'utils'))
 
 %Path to the cloned fieldtrip dir from https://github.com/SimonYamazaki/fieldtrip
 %Note: you will not be able to use your own installation of fieldtrip as

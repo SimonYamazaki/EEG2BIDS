@@ -13,11 +13,31 @@ function cfg = configure_input(cfg,input)
     sesindx = cfg.sesindx;
     subindx = cfg.subindx;
     
-    %specify that the data is eeg 
-    cfg.datatype  = 'eeg'; 
+    if not(isfield(cfg,'bids_datatype')) || strcmp(cfg.bids_datatype,'raw')
+        %specify that the data is eeg 
+        cfg.datatype  = 'eeg'; 
     
-    % specify the output directory (bids_dir)
-    cfg.bidsroot  = input.init.bids_dir;
+        % specify the output directory (bids_dir)
+        cfg.bidsroot  = input.init.bids_dir;
+        
+    elseif strcmp(cfg.bids_datatype,'source')
+        sourcedata_dir = fullfile(input.init.bids_dir,'/sourcedata');
+        cfg.bidsroot  = sourcedata_dir;
+        
+        if not(isfolder(sourcedata_dir))
+            mkdir(sourcedata_dir)
+        end
+        
+    elseif strcmp(cfg.bids_datatype,'derivatives')
+        deriv_dir = fullfile(input.init.bids_dir,'/derivatives');
+        cfg.bidsroot  = deriv_dir;
+
+        if not(isfolder(deriv_dir))
+            mkdir(deriv_dir)
+        end
+    end
+    
+    
     
     %By default if no session is specified, the cell array "ses" is named
     %'None' through functions in the EEG2BIDS_tool_dir
@@ -36,9 +56,26 @@ function cfg = configure_input(cfg,input)
     
     %specify whether files should be included
     cfg.include_scans = input.init.include_scans_tsv;
-    cfg.write_events_tsv = input.init.include_events_tsv;
-    cfg.channels_in_sub_dir = input.init.channels_in_sub_dir;
-    cfg.include_task_name = input.init.include_task_name;
+    
+    if isfield(input.init,'include_events_tsv')
+        cfg.write_events_tsv = input.init.include_events_tsv;
+    else
+        cfg.write_events_tsv = false;
+    end
+    
+    if isfield(input.init,'include_participants_tsv')
+        cfg.write_participants_tsv = input.init.include_participants_tsv;
+    else
+        cfg.write_participants_tsv = true;
+    end    
+    
+    if isfield(input.init,'channels_in_sub_dir') && isfield(input.init,'include_task_name')
+        cfg.channels_in_sub_dir = input.init.channels_in_sub_dir;
+        cfg.include_task_name = input.init.include_task_name;
+    else
+        cfg.channels_in_sub_dir = false;
+        cfg.include_task_name = true;
+    end
 
     % define data file for current subject in loop
     if isstruct(input.init.data_dir)

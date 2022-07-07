@@ -19,6 +19,7 @@ function EEG2BIDS_MMN(varargin)
 
 %Path to the cloned EEG2BIDS dir from https://github.com/SimonYamazaki/EEG2BIDS
 init.EEG2BIDS_tool_dir = '/mnt/projects/VIA11/EEG/BIDS_creation_files/EEG2BIDS';
+addpath(fullfile(init.EEG2BIDS_tool_dir,'utils'))
 
 %Path to the cloned fieldtrip dir from https://github.com/SimonYamazaki/fieldtrip
 %Note: you will not be able to use your own installation of fieldtrip as
@@ -270,6 +271,7 @@ for sesindx=1:numel(input.ses)
     cfg.TaskDescription = '????';
 
     %Specify some general information that will be added to the eeg.json file
+    %Every field of cfg.eeg will be a field in the eeg.json file
     cfg.eeg.InstitutionName             = 'Centre for Functional and Diagnostic Imagning and Research, Danish Research Center for Magnetic Resonance, Amager and Hvidovre hospital'; % - RECOMMENDED
     cfg.eeg.InstitutionAddress          = 'Kettegard Allé 30, DK-2650 Hvidovre, Denmark'; % - RECOMMENDED
     
