@@ -155,7 +155,7 @@ init.files_checked.via11 = {sprintf('sub-via*_ses-via11_task-%s_eeg.bdf',init.ta
 % - assumes the table has a column of subject ids, and rows consisting of 
 %participant info for a particular subject id 
 % - assumes that participant info is identical for all tasks in bids_dir
-init.sub_info_table_path = '????'; % the allkey database file, this was the old one: '/mnt/projects/VIA11/database/VIA11_allkey_160621.csv';
+init.sub_info_table_path = '/mnt/projects/VIA11/database/VIA11_allkey_160621.csv'; % the allkey database file, this was the old one: '/mnt/projects/VIA11/database/VIA11_allkey_160621.csv';
 init.sub_info_table = readtable(init.sub_info_table_path); %read the table
 
 %Get subject ids coloum from sub_info_table. 
@@ -172,7 +172,7 @@ init.participant_id_trans = @(x) sprintf('%03s',num2str(x)); %transforms a doubl
 %Coloumns to include from sub_info_table
 % - only include these participant info variables (columns) in participants.tsv
 % - if no variables are listed, all variables are added to the participants.tsv
-init.participant_info_include = {'????','????','????'}; %what coloumns from database file should be added to participants.tsv. This is an example of 3 columns you may add: %{'MRI_age_v11', 'Sex_child_v11','HighRiskStatus_v11'};
+init.participant_info_include = {'MRI_age_v11', 'Sex_child_v11','HighRiskStatus_v11'}; %what coloumns from database file should be added to participants.tsv. This is an example of 3 columns you may add: %{'MRI_age_v11', 'Sex_child_v11','HighRiskStatus_v11'};
 %IMPORTANT: remember to fill out the participants_variables.txt with the
 %coloumns specified here 
 
@@ -372,8 +372,8 @@ for sesindx=1:numel(input.ses)
         for i=1:size(RT)
             temp=RT{i};
             for j=1:size(temp,2) 
-                contains = find(numb(:) == temp(j));
-                rtt=[rtt (numb(contains))];
+                containss = find(numb(:) == temp(j));
+                rtt=[rtt (numb(containss))];
             end
            RTn(i)=str2num(rtt);
            RTn = reshape(RTn,[],1); 
@@ -402,6 +402,7 @@ for sesindx=1:numel(input.ses)
             if any(condition_idx)
                 lbl = conditions{condition_idx};
             else
+                fprintf('WE HAVE UNKNOWN EVENT VALUES')
                 lbl = 'unknown';
             end
             S.conditionlabels{i,:}=lbl;
@@ -417,7 +418,8 @@ for sesindx=1:numel(input.ses)
         accuracies(response_idx) = acc_cell(:);
 
         response = cell(length(S.conditionlabels),1);
-        resp_cell = num2cell(int16(Resp)); %cell array of response types
+        resp_int = cellfun(@(x) x(1),Resp,'UniformOutput',0);
+        resp_cell = num2cell(resp_int); %cell array of accuracies
         response(response_idx) = resp_cell(:);
 
         %mandatory coloumns in events.tsv
@@ -471,7 +473,7 @@ for sesindx=1:numel(input.ses)
         cfg.event_json_struct.type.Levels.Epoch = '????';
         cfg.event_json_struct.type.Levels.CM_in_range = '????';
 
-        cfg.event_json_struct.response.Description = '????';
+        cfg.event_json_struct.response.Description = '????'; % this is the response type of the particular trial, i.e. participant pressed left, right ...
         cfg.event_json_struct.response.Units = '????';
 
         cfg.event_json_struct.response_time.Description = '????';
@@ -514,6 +516,7 @@ for sesindx=1:numel(input.ses)
     %placed in bids_dir, e.i if sub-XXX is in file name the events.json 
     %should not be written next iteration of subject loop as only ONE
     %should be made jf. the inheritance principle
+    %[not_needed,filename,not_needed]=fileparts(cfg.event_json_file);
     if ~contains(cfg.event_json_file, sprintf('sub-%s',cfg.sub))
         input.init.write_events = false;
     end

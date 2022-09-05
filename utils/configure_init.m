@@ -138,15 +138,6 @@ else
     input.run_mode = 'new_BIDS'; %implies that a new session or BIDS dataset is to be created, along general files such as dataset_description, participants.json
 end
 
-%subjects to be added to an existing session
-if any(ses_add) %sessions to add assuming that other parts of the BIDS dataset have been created successfully
-    ses_to_add = input.ses(ses_add);
-    for s = 1:length(ses_to_add)
-        for ss = 1:length(input.sub.(ses_to_add{s}))
-            fprintf('Moving subject %s files into BIDS dataset for session %s \n',input.sub.(ses_to_add{s}){ss},ses_to_add{s})
-        end
-    end
-end
 
 %Copy the stimulation files to /stim direcotry
 if isfield(init,'stim_files')
@@ -167,10 +158,20 @@ end
 
 %exlude extra subjects manually specified
 if isfield(init,'exclude')
+    input.bdf_file_names.(input.ses{s}) = input.bdf_file_names.(input.ses{s})(~ismember(input.sub.(input.ses{s}),init.exclude.(input.ses{s})));
+    input.bdf_file_folders.(input.ses{s}) = input.bdf_file_folders.(input.ses{s})(~ismember(input.sub.(input.ses{s}),init.exclude.(input.ses{s})));
     input.sub.(input.ses{s}) = input.sub.(input.ses{s})(~ismember(input.sub.(input.ses{s}),init.exclude.(input.ses{s})));
 end
 
-
+%subjects to be added to an existing session
+if any(ses_add) %sessions to add assuming that other parts of the BIDS dataset have been created successfully
+    ses_to_add = input.ses(ses_add);
+    for s = 1:length(ses_to_add)
+        for ss = 1:length(input.sub.(ses_to_add{s}))
+            fprintf('Going to move subject %s files into BIDS dataset for session %s \n',input.sub.(ses_to_add{s}){ss},ses_to_add{s})
+        end
+    end
+end
 
 input.init = init;
 
